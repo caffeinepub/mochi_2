@@ -1155,392 +1155,12 @@ export default function FriendsTab() {
       ? "0 4px 24px rgba(180,100,255,0.08)"
       : "0 4px 20px rgba(139,143,202,0.12)",
   };
-
-  // ── Open Chat View ──────────────────────────────────────────────────────────
-  if (openChat) {
-    const chatMsgs = messages[openChat.id] ?? [];
-    return (
-      <div className="flex flex-col h-screen">
-        {/* Chat header */}
-        <header
-          className="flex items-center gap-3 px-4 pt-12 pb-3 sticky top-0 z-10"
-          style={{
-            background: isDark
-              ? "rgba(15,15,30,0.92)"
-              : "rgba(255,255,255,0.92)",
-            backdropFilter: "blur(20px)",
-            borderBottom: isDark
-              ? "1px solid rgba(255,255,255,0.07)"
-              : "1px solid rgba(0,0,0,0.06)",
-          }}
-        >
-          <button
-            type="button"
-            data-ocid="chat.close_button"
-            onClick={() => setOpenChat(null)}
-            className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
-          >
-            <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <div className="w-9 h-9 rounded-full flex-shrink-0 relative overflow-hidden">
-            {openChat.avatar ? (
-              <img
-                src={openChat.avatar}
-                alt={openChat.name}
-                className="w-full h-full object-cover rounded-full"
-              />
-            ) : (
-              <div
-                className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white font-bold text-sm`}
-              >
-                {openChat.isAI ? openChat.aiCompanion?.emoji : openChat.name[0]}
-              </div>
-            )}
-            {openChat.isAI && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
-                <Bot className="w-2.5 h-2.5 text-white" />
-              </span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
-              <p className="font-bold text-sm text-foreground truncate">
-                {openChat.name}
-              </p>
-              {openChat.isAI && (
-                <span className="text-[9px] bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-bold">
-                  AI
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-emerald-500 font-semibold">
-              Always online ✨
-            </p>
-          </div>
-        </header>
-        <div className="flex items-center justify-center gap-1 py-1">
-          <Lock className="w-2.5 h-2.5 text-muted-foreground" />
-          <span className="text-[10px] text-muted-foreground">
-            End-to-end encrypted
-          </span>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 pb-36">
-          {chatMsgs.map((msg) => {
-            const isMe = msg.from === "me";
-            const isLongPressed = longPressMsg === msg.id;
-            const isEditing = editingId === msg.id;
-            const repliedMsg = msg.replyTo
-              ? chatMsgs.find((m) => m.id === msg.replyTo)
-              : null;
-
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-              >
-                {!isMe && openChat.isAI && (
-                  <div className="w-7 h-7 rounded-full mr-2 mt-1 flex-shrink-0 overflow-hidden">
-                    {openChat.avatar ? (
-                      <img
-                        src={openChat.avatar}
-                        alt={openChat.name}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <div
-                        className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white text-xs`}
-                      >
-                        {openChat.aiCompanion?.emoji}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="max-w-[72%]">
-                  {repliedMsg && (
-                    <div
-                      className={`text-xs px-2 py-1 rounded-lg mb-1 border-l-2 border-primary opacity-70 ${isMe ? "ml-auto" : ""}`}
-                      style={{
-                        background: isDark
-                          ? "rgba(255,255,255,0.06)"
-                          : "rgba(0,0,0,0.05)",
-                      }}
-                    >
-                      <span className="font-bold">
-                        {repliedMsg.from === "me" ? "You" : openChat.name}:
-                      </span>{" "}
-                      {repliedMsg.content.slice(0, 50)}
-                    </div>
-                  )}
-                  <div
-                    onMouseDown={() => isMe && handleLongPress(msg.id)}
-                    onMouseUp={cancelLongPress}
-                    onTouchStart={() => isMe && handleLongPress(msg.id)}
-                    onTouchEnd={cancelLongPress}
-                    className={`rounded-2xl overflow-hidden transition-all duration-150 ${isLongPressed ? "ring-2 ring-primary scale-95" : ""}`}
-                    style={{
-                      background: isMe
-                        ? "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))"
-                        : isDark
-                          ? "rgba(255,255,255,0.08)"
-                          : "rgba(245,240,255,0.9)",
-                    }}
-                  >
-                    {isEditing ? (
-                      <div className="flex gap-2 items-center px-3 py-2">
-                        <input
-                          className="flex-1 bg-transparent text-sm outline-none text-white"
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                        />
-                        <button type="button" onClick={saveEdit}>
-                          <Check className="w-4 h-4 text-white" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                        >
-                          <X className="w-4 h-4 text-white/70" />
-                        </button>
-                      </div>
-                    ) : msg.type === "image" ? (
-                      <img
-                        src={msg.content}
-                        alt="img"
-                        className="max-w-full max-h-48 object-cover"
-                      />
-                    ) : msg.type === "video" ? (
-                      <video
-                        src={msg.content}
-                        controls
-                        className="max-w-full max-h-48"
-                      >
-                        <track kind="captions" />
-                      </video>
-                    ) : (
-                      <p
-                        className={`px-3 py-2 text-sm ${isMe ? "text-white" : "text-foreground"}`}
-                      >
-                        {msg.content}
-                      </p>
-                    )}
-                  </div>
-                  <p
-                    className={`text-[10px] text-muted-foreground mt-0.5 ${isMe ? "text-right" : ""}`}
-                  >
-                    {msg.timestamp}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* AI typing indicator */}
-          {aiTyping && (
-            <div className="flex justify-start">
-              <div className="w-7 h-7 rounded-full mr-2 mt-1 flex-shrink-0 overflow-hidden">
-                {openChat.avatar ? (
-                  <img
-                    src={openChat.avatar}
-                    alt={openChat.name}
-                    className="w-full h-full object-cover rounded-full"
-                  />
-                ) : (
-                  <div
-                    className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white text-xs`}
-                  >
-                    {openChat.aiCompanion?.emoji}
-                  </div>
-                )}
-              </div>
-              <div
-                className="rounded-2xl px-4 py-3"
-                style={{
-                  background: isDark
-                    ? "rgba(255,255,255,0.08)"
-                    : "rgba(245,240,255,0.9)",
-                }}
-              >
-                <div className="flex gap-1 items-center">
-                  <motion.div
-                    animate={{ scale: [1, 1.4, 1] }}
-                    transition={{
-                      repeat: Number.POSITIVE_INFINITY,
-                      duration: 0.8,
-                      delay: 0,
-                    }}
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
-                  />
-                  <motion.div
-                    animate={{ scale: [1, 1.4, 1] }}
-                    transition={{
-                      repeat: Number.POSITIVE_INFINITY,
-                      duration: 0.8,
-                      delay: 0.2,
-                    }}
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
-                  />
-                  <motion.div
-                    animate={{ scale: [1, 1.4, 1] }}
-                    transition={{
-                      repeat: Number.POSITIVE_INFINITY,
-                      duration: 0.8,
-                      delay: 0.4,
-                    }}
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Long-press menu */}
-        <AnimatePresence>
-          {longPressMsg &&
-            (() => {
-              const msg = chatMsgs.find((m) => m.id === longPressMsg);
-              if (!msg) return null;
-              return (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-24 right-4 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                  style={{
-                    background: isDark
-                      ? "rgba(30,30,50,0.98)"
-                      : "rgba(255,255,255,0.98)",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReplyingTo(msg);
-                      setLongPressMsg(null);
-                    }}
-                    className="flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors w-full"
-                  >
-                    ↩ Reply
-                  </button>
-                  {msg.from === "me" && msg.type === "text" && (
-                    <button
-                      type="button"
-                      onClick={() => startEdit(msg)}
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors w-full"
-                    >
-                      ✏️ Edit
-                    </button>
-                  )}
-                  {msg.from === "me" && (
-                    <button
-                      type="button"
-                      onClick={() => deleteMessage(msg.id)}
-                      className="flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors w-full"
-                    >
-                      🗑 Delete
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setLongPressMsg(null)}
-                    className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
-                  >
-                    Cancel
-                  </button>
-                </motion.div>
-              );
-            })()}
-        </AnimatePresence>
-
-        {/* Input bar */}
-        <div
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-3 pb-6 pt-2 z-30"
-          style={{
-            background: isDark
-              ? "rgba(15,15,30,0.94)"
-              : "rgba(255,255,255,0.94)",
-            backdropFilter: "blur(20px)",
-            borderTop: isDark
-              ? "1px solid rgba(255,255,255,0.07)"
-              : "1px solid rgba(0,0,0,0.05)",
-          }}
-        >
-          {replyingTo && (
-            <div className="flex items-center justify-between px-3 py-1.5 mb-2 rounded-xl bg-muted">
-              <span className="text-xs text-muted-foreground truncate">
-                ↩ {replyingTo.content.slice(0, 40)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setReplyingTo(null)}
-                className="text-muted-foreground"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            {!openChat.isAI && (
-              <>
-                <button
-                  type="button"
-                  data-ocid="chat.upload_button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-                >
-                  <Image className="w-4 h-4 text-muted-foreground" />
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={handleMediaPick}
-                />
-              </>
-            )}
-            <input
-              type="text"
-              data-ocid="chat.input"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              placeholder={
-                openChat.isAI
-                  ? `Talk to ${openChat.name.split(" ")[0]}...`
-                  : "Message..."
-              }
-              className="flex-1 bg-muted rounded-full px-4 py-2 text-sm outline-none focus:ring-2 ring-primary/30 text-foreground placeholder:text-muted-foreground"
-            />
-            <button
-              type="button"
-              data-ocid="chat.submit_button"
-              onClick={() => sendMessage()}
-              disabled={!inputText.trim()}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
-              }}
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // ── Main Friends View ───────────────────────────────────────────────────────
   const aiCompanions = friends.filter((f) => f.isAI);
   const realFriends = friends.filter((f) => !f.isAI);
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="relative h-screen overflow-hidden">
       {/* Header */}
       <header
         className="flex items-center justify-between px-4 pt-12 pb-3 sticky top-0 z-10"
@@ -2208,6 +1828,405 @@ export default function FriendsTab() {
             </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Chat overlay - slides in from right */}
+      <AnimatePresence>
+        {openChat &&
+          (() => {
+            const chatMsgs = messages[openChat.id] ?? [];
+            return (
+              <motion.div
+                key={openChat.id}
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{
+                  type: "tween",
+                  duration: 0.28,
+                  ease: [0.32, 0.72, 0, 1],
+                }}
+                className="absolute inset-0 z-50 flex flex-col"
+                style={{
+                  background: isDark ? "rgb(10,10,20)" : "rgb(255,255,255)",
+                }}
+              >
+                {/* Chat header */}
+                <header
+                  className="flex items-center gap-3 px-4 pt-12 pb-3 sticky top-0 z-10"
+                  style={{
+                    background: isDark
+                      ? "rgba(15,15,30,0.92)"
+                      : "rgba(255,255,255,0.92)",
+                    backdropFilter: "blur(20px)",
+                    borderBottom: isDark
+                      ? "1px solid rgba(255,255,255,0.07)"
+                      : "1px solid rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    data-ocid="chat.close_button"
+                    onClick={() => setOpenChat(null)}
+                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                  <div className="w-9 h-9 rounded-full flex-shrink-0 relative overflow-hidden">
+                    {openChat.avatar ? (
+                      <img
+                        src={openChat.avatar}
+                        alt={openChat.name}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <div
+                        className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white font-bold text-sm`}
+                      >
+                        {openChat.isAI
+                          ? openChat.aiCompanion?.emoji
+                          : openChat.name[0]}
+                      </div>
+                    )}
+                    {openChat.isAI && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                        <Bot className="w-2.5 h-2.5 text-white" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-bold text-sm text-foreground truncate">
+                        {openChat.name}
+                      </p>
+                      {openChat.isAI && (
+                        <span className="text-[9px] bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-bold">
+                          AI
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-emerald-500 font-semibold">
+                      Always online ✨
+                    </p>
+                  </div>
+                </header>
+                <div className="flex items-center justify-center gap-1 py-1">
+                  <Lock className="w-2.5 h-2.5 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">
+                    End-to-end encrypted
+                  </span>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 pb-36">
+                  {chatMsgs.map((msg) => {
+                    const isMe = msg.from === "me";
+                    const isLongPressed = longPressMsg === msg.id;
+                    const isEditing = editingId === msg.id;
+                    const repliedMsg = msg.replyTo
+                      ? chatMsgs.find((m) => m.id === msg.replyTo)
+                      : null;
+
+                    return (
+                      <div
+                        key={msg.id}
+                        className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                      >
+                        {!isMe && openChat.isAI && (
+                          <div className="w-7 h-7 rounded-full mr-2 mt-1 flex-shrink-0 overflow-hidden">
+                            {openChat.avatar ? (
+                              <img
+                                src={openChat.avatar}
+                                alt={openChat.name}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            ) : (
+                              <div
+                                className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white text-xs`}
+                              >
+                                {openChat.aiCompanion?.emoji}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <div className="max-w-[72%]">
+                          {repliedMsg && (
+                            <div
+                              className={`text-xs px-2 py-1 rounded-lg mb-1 border-l-2 border-primary opacity-70 ${isMe ? "ml-auto" : ""}`}
+                              style={{
+                                background: isDark
+                                  ? "rgba(255,255,255,0.06)"
+                                  : "rgba(0,0,0,0.05)",
+                              }}
+                            >
+                              <span className="font-bold">
+                                {repliedMsg.from === "me"
+                                  ? "You"
+                                  : openChat.name}
+                                :
+                              </span>{" "}
+                              {repliedMsg.content.slice(0, 50)}
+                            </div>
+                          )}
+                          <div
+                            onMouseDown={() => isMe && handleLongPress(msg.id)}
+                            onMouseUp={cancelLongPress}
+                            onTouchStart={() => isMe && handleLongPress(msg.id)}
+                            onTouchEnd={cancelLongPress}
+                            className={`rounded-2xl overflow-hidden transition-all duration-150 ${isLongPressed ? "ring-2 ring-primary scale-95" : ""}`}
+                            style={{
+                              background: isMe
+                                ? "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))"
+                                : isDark
+                                  ? "rgba(255,255,255,0.08)"
+                                  : "rgba(245,240,255,0.9)",
+                            }}
+                          >
+                            {isEditing ? (
+                              <div className="flex gap-2 items-center px-3 py-2">
+                                <input
+                                  className="flex-1 bg-transparent text-sm outline-none text-white"
+                                  value={editText}
+                                  onChange={(e) => setEditText(e.target.value)}
+                                  onKeyDown={(e) =>
+                                    e.key === "Enter" && saveEdit()
+                                  }
+                                />
+                                <button type="button" onClick={saveEdit}>
+                                  <Check className="w-4 h-4 text-white" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingId(null)}
+                                >
+                                  <X className="w-4 h-4 text-white/70" />
+                                </button>
+                              </div>
+                            ) : msg.type === "image" ? (
+                              <img
+                                src={msg.content}
+                                alt="img"
+                                className="max-w-full max-h-48 object-cover"
+                              />
+                            ) : msg.type === "video" ? (
+                              <video
+                                src={msg.content}
+                                controls
+                                className="max-w-full max-h-48"
+                              >
+                                <track kind="captions" />
+                              </video>
+                            ) : (
+                              <p
+                                className={`px-3 py-2 text-sm ${isMe ? "text-white" : "text-foreground"}`}
+                              >
+                                {msg.content}
+                              </p>
+                            )}
+                          </div>
+                          <p
+                            className={`text-[10px] text-muted-foreground mt-0.5 ${isMe ? "text-right" : ""}`}
+                          >
+                            {msg.timestamp}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* AI typing indicator */}
+                  {aiTyping && (
+                    <div className="flex justify-start">
+                      <div className="w-7 h-7 rounded-full mr-2 mt-1 flex-shrink-0 overflow-hidden">
+                        {openChat.avatar ? (
+                          <img
+                            src={openChat.avatar}
+                            alt={openChat.name}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full rounded-full bg-gradient-to-br ${openChat.avatarColor} flex items-center justify-center text-white text-xs`}
+                          >
+                            {openChat.aiCompanion?.emoji}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="rounded-2xl px-4 py-3"
+                        style={{
+                          background: isDark
+                            ? "rgba(255,255,255,0.08)"
+                            : "rgba(245,240,255,0.9)",
+                        }}
+                      >
+                        <div className="flex gap-1 items-center">
+                          <motion.div
+                            animate={{ scale: [1, 1.4, 1] }}
+                            transition={{
+                              repeat: Number.POSITIVE_INFINITY,
+                              duration: 0.8,
+                              delay: 0,
+                            }}
+                            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
+                          />
+                          <motion.div
+                            animate={{ scale: [1, 1.4, 1] }}
+                            transition={{
+                              repeat: Number.POSITIVE_INFINITY,
+                              duration: 0.8,
+                              delay: 0.2,
+                            }}
+                            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
+                          />
+                          <motion.div
+                            animate={{ scale: [1, 1.4, 1] }}
+                            transition={{
+                              repeat: Number.POSITIVE_INFINITY,
+                              duration: 0.8,
+                              delay: 0.4,
+                            }}
+                            className="w-1.5 h-1.5 rounded-full bg-muted-foreground"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Long-press menu */}
+                <AnimatePresence>
+                  {longPressMsg &&
+                    (() => {
+                      const msg = chatMsgs.find((m) => m.id === longPressMsg);
+                      if (!msg) return null;
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute bottom-24 right-4 rounded-2xl shadow-2xl z-50 overflow-hidden"
+                          style={{
+                            background: isDark
+                              ? "rgba(30,30,50,0.98)"
+                              : "rgba(255,255,255,0.98)",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReplyingTo(msg);
+                              setLongPressMsg(null);
+                            }}
+                            className="flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors w-full"
+                          >
+                            ↩ Reply
+                          </button>
+                          {msg.from === "me" && msg.type === "text" && (
+                            <button
+                              type="button"
+                              onClick={() => startEdit(msg)}
+                              className="flex items-center gap-2 px-4 py-3 text-sm text-foreground hover:bg-muted transition-colors w-full"
+                            >
+                              ✏️ Edit
+                            </button>
+                          )}
+                          {msg.from === "me" && (
+                            <button
+                              type="button"
+                              onClick={() => deleteMessage(msg.id)}
+                              className="flex items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors w-full"
+                            >
+                              🗑 Delete
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setLongPressMsg(null)}
+                            className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground hover:bg-muted transition-colors w-full"
+                          >
+                            Cancel
+                          </button>
+                        </motion.div>
+                      );
+                    })()}
+                </AnimatePresence>
+
+                {/* Input bar */}
+                <div
+                  className="sticky bottom-0 w-full px-3 pb-6 pt-2 z-30"
+                  style={{
+                    background: isDark
+                      ? "rgba(15,15,30,0.94)"
+                      : "rgba(255,255,255,0.94)",
+                    backdropFilter: "blur(20px)",
+                    borderTop: isDark
+                      ? "1px solid rgba(255,255,255,0.07)"
+                      : "1px solid rgba(0,0,0,0.05)",
+                  }}
+                >
+                  {replyingTo && (
+                    <div className="flex items-center justify-between px-3 py-1.5 mb-2 rounded-xl bg-muted">
+                      <span className="text-xs text-muted-foreground truncate">
+                        ↩ {replyingTo.content.slice(0, 40)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(null)}
+                        className="text-muted-foreground"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      data-ocid="chat.upload_button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
+                    >
+                      <Image className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={handleMediaPick}
+                    />
+                    <input
+                      type="text"
+                      data-ocid="chat.input"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                      placeholder={
+                        openChat.isAI
+                          ? `Talk to ${openChat.name.split(" ")[0]}...`
+                          : "Message..."
+                      }
+                      className="flex-1 bg-muted rounded-full px-4 py-2 text-sm outline-none focus:ring-2 ring-primary/30 text-foreground placeholder:text-muted-foreground"
+                    />
+                    <button
+                      type="button"
+                      data-ocid="chat.submit_button"
+                      onClick={() => sendMessage()}
+                      disabled={!inputText.trim()}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-40 flex-shrink-0"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
+                      }}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
       </AnimatePresence>
     </div>
   );
