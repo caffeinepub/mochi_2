@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import BottomNav from "./components/BottomNav";
 import ChatTab from "./components/ChatTab";
+import FloatingMochi from "./components/FloatingMochi";
 import FriendsTab from "./components/FriendsTab";
 import HomeTab from "./components/HomeTab";
+import MochiOnboarding from "./components/MochiOnboarding";
 import MoodTab from "./components/MoodTab";
 import PostTab from "./components/PostTab";
 import ProfileTab from "./components/ProfileTab";
@@ -66,11 +68,23 @@ function AppContent() {
   const [direction, setDirection] = useState(0);
   const [sosOpen, setSosOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem("mochi_onboarding_done"),
+  );
   const prevTabRef = useRef<Tab>("home");
 
   const { data: profile, isLoading: profileLoading } = useGetCallerProfile();
   const saveProfile = useSaveProfile();
   const { mutate: saveProfileMutate } = saveProfile;
+
+  // Give 50 starter points once
+  useEffect(() => {
+    if (!localStorage.getItem("mochi_starter_points_given")) {
+      const current = Number(localStorage.getItem("mochi_local_points") ?? "0");
+      localStorage.setItem("mochi_local_points", String(current + 50));
+      localStorage.setItem("mochi_starter_points_given", "true");
+    }
+  }, []);
 
   useEffect(() => {
     if (!profileLoading && !profile) {
@@ -129,6 +143,20 @@ function AppContent() {
         {postOpen && <PostTab onClose={() => setPostOpen(false)} />}
         {sosOpen && <SOSOverlay onClose={() => setSosOpen(false)} />}
       </div>
+
+      {/* Mochi Onboarding Overlay */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <MochiOnboarding
+            onClose={() => {
+              localStorage.setItem("mochi_onboarding_done", "true");
+              setShowOnboarding(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <FloatingMochi />
       <Toaster position="top-center" />
     </div>
   );

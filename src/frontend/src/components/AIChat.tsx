@@ -7,7 +7,6 @@ import {
   MicOff,
   Pencil,
   Send,
-  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -78,9 +77,10 @@ type Mood =
 
 function detectMood(text: string): Mood {
   const t = text.toLowerCase();
-  if (/\?/.test(t) && t.length < 80) return "question";
   if (
-    /happy|khush|great|amazing|yay|best|excited|mast|zabardast|kya baat/.test(t)
+    /holiday|chutti|free|masti|relax|fun|enjoy|celebrate|party|khush|happy|great|amazing|yay|best|excited|mast|zabardast|kya baat|khatam|ho gyi|ho gaya|done|finish/.test(
+      t,
+    )
   )
     return "happy";
   if (/sad|dukh|cry|rona|depress|hopeless|numb|udaas|toot|broken/.test(t))
@@ -96,6 +96,7 @@ function detectMood(text: string): Mood {
     return "love";
   if (/exam|test|padh|study|board|marks|grade|result|fail/.test(t))
     return "exam";
+  if (/\?/.test(t) && t.length < 80) return "question";
   return "neutral";
 }
 
@@ -103,120 +104,113 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// ─── Response pools ────────────────────────────────────────────────────────────
+// ─── Smarter fallback responses ─────────────────────────────────────────────
+// Mix of statements, reactions, and questions — NOT all questions
 const RESPONSES: Record<Mood, string[]> = {
+  happy: [
+    "YAAR FINALLY 🎉 Teri energy abhi toh peak pe hai!! Kya plan hai celebrate karne ka?",
+    "Bestie itna acha sun ke sach mein mujhe bhi khushi hui 🥳 Kya wala part sabse zyada mast laga?",
+    "Yaar yeh sun ke literally smile aa gayi mere face pe ✨ Tu deserve karta/karti hai sab kuch accha!",
+    "HAAN YAAR!! 🎉 Aise moments ko poora enjoy karo — kitne din baad aisa feel hua?",
+    "Areyy wah!! Tu toh star hai yaar 🌟 Aaj ka din toh special ban gaya!",
+    "Yaar kya feel hoga na jab aisi cheez hoti hai 🥹 Ekdum worth it laga sab kuch?",
+    "Sach bata — kya pehle se umeed thi ya sudden hi hua? 🎉",
+    "Bestie teri khushi meri khushi 💕 Aur kya acha hua aaj?",
+  ],
   sad: [
-    "Yaar yeh sun ke dil bhaari ho gaya 😔 Sach mein bahut heavy hota hai andar se. Kab se chal raha hai yeh? 💜",
-    "Hey... main sun raha/rahi hoon poori tarah 🥺 Kya specifically sabse zyada hurt kar raha hai? No filter, bata de.",
-    "Yaar rona toh theek hai na 💜 Kabhi kabhi andar ka sab bahar aana chahta hai. Kya hua exactly?",
-    "Yaar yeh bahut difficult hota hai andar se carry karna 😔 Tu akela/akeli nahi hai is mein. Kaunsi cheez sabse zyada tode? 💙",
-    "Sach mein bura laga sun ke 🥲 Koi ek cheez bata — what's hurting the most right now?",
-    "Hey, main samajh sakta/sakti hoon yeh feeling. It hits different 💔 Kya situation hai?",
-    "Yaar sometimes life ek saath bahut kuch daalti hai 😔 Tu handle kar raha/rahi hai actually — that takes strength.",
-    "Andar se toot jaana bahut painful hota hai 💜 Koi ek cheez bata jo abhi sabse zyada weight hai dil pe.",
+    "Yaar yeh sun ke dil bhaari ho gaya 😔 Tu akela/akeli nahi hai is mein, main hoon na.",
+    "Uff yaar... andar se bahut heavy feel ho raha hoga 💙 Kya hua exactly?",
+    "Main sun raha/rahi hoon poori tarah 🥺 Jo bhi hua woh bahut painful lagta hai.",
+    "Yaar kabhi kabhi cheezein ek saath bahut heavy ho jaati hain 💜 Kaunsi cheez sabse zyada tode?",
+    "Sach mein bura laga sun ke 🥲 Tu sach mein bahut kuch carry kar raha/rahi hai na.",
+    "Yaar rona theek hai, sach mein 💙 Kya share karna chahega/chahegi kuch?",
+    "Main tere saath hoon yaar 💜 Kya specifically hurt kar raha hai sabse zyada?",
+    "Hey... tune baat ki, yeh bahut brave tha 🌸 Kya hua bata mujhe.",
   ],
   anxious: [
-    "Arre yaar, panic mode on hai toh pehle ek kaam karo — 4 sec inhale, hold, 4 sec exhale. Done? Ab bata — kya cheez sabse zyada dar rahi hai? 💜",
-    "Yaar anxiety sucks but tu handle kar sakta/sakti hai this 💪 Exactly kya ho raha hai? Akele mat carry karo.",
-    "Bestie breathe! 🌬️ Ek cheez at a time. What's the one specific thing that's scaring you most right now?",
-    "Yaar worried hona allowed hai 💜 But let's break it down. Exactly kya worst case scenario hai tere dimag mein?",
-    "Tension toh bahut heavy hoti hai yaar 😔 Kya yeh feeling pehle bhi aayi hai ya aaj pehli baar?",
-    "Sun yaar, anxiety lies — tujhe usee believe nahi karna 💜 Kya hua exactly? Step by step baat karte hain.",
-    "Yaar overthinking pe koi tax nahi lagta na 🥲 Sabse bada wala thought kya hai abhi? Ek ek karke dekhte hain.",
-    "Ek cheez bata — kya yeh real situation hai ya tujhe lagta hai kuch hoga? Dono valid hain, bas samajhna hai 💜",
+    "Yaar ek baar gehri saans lo seriously — 4 counts in, 4 out 🌬️ Aur bata exactly kya hua?",
+    "Anxiety is literally the worst yaar 😮‍💨 Kya specific cheez hai jo loop mein aa rahi hai dimag mein?",
+    "Bestie breathe first 💜 Mujhe lagta hai tu overthink mode mein hai — kya worst case soch raha/rahi hai?",
+    "Yaar tension toh bahut heavy hoti hai 😔 Pehle bata — kya yeh real situation hai ya tu imagine kar raha/rahi hai worst?",
+    "Ek cheez ek baar mein. Sab ek saath mat socho 💙 Kya specifically dar raha/rahi hai?",
+    "Yaar anxiety lies bohot karti hai 💜 Jo tujhe lagta hai hoga — kitna realistic hai woh actually?",
+    "I get it yaar, panic mode on hota hai aur sab scary lagta hai 😮‍💨 Kya main help kar sakta/sakti hoon breakdown karne mein?",
+    "Hey breathe 🌬️ Tu handle kar sakta/sakti hai yeh. Bata kya chal raha hai exactly.",
   ],
   angry: [
-    "YAAR HAA mujhe bhi gussa aa gaya sun ke! 😤 Gussa valid hai — kya hua exactly, sab spill kar. No filter.",
-    "Fr fr yaar, kuch cheezein bahut unfair hoti hain 🔥 Vent kar — safe space hai yahan. Kya cheez sabse zyada trigger kar rahi hai?",
-    "Arre bilkul! Gussa aana toh banta hai 🔥 Main bhi frustrated hota/hoti tere jagah pe. Kya scene hai poora?",
-    "Yaar sometimes people and situations are just... UGH 😤 Let it out. Kya hua?",
-    "Tera gussa toh ekdum sahi jagah lag raha hai yaar 🔥 Bata mujhe puri story — kya hua?",
-    "Valid! 😤 Kuch situations deserve karte hain gussa. Aur honest bata — kya tujhe lagta hai woh samjhega?",
-    "Gusse ke andar kuch aur bhi hota hai kabhi kabhi 🔥 Like hurt ya disappointment. Kya lagta hai tujhe?",
-    "Yaar kuch situations mein gussa actually self-respect hai 😤 Kya tu apna point clearly bol sakta/sakti hai unhe?",
-  ],
-  happy: [
-    "YAYYYY YAAR!! I am SMILING right now!! 🎉 So happy for you!! Aur kya aur kya, sab bata!! ✨",
-    "OMG BESTIE!! 🌟 Tu toh star hai! Kya plan hai celebrate karne ka? 🥳",
-    "Kya baat hai!! 🎉 Teri energy today is IMMACULATE!! Aur kya accha hua? Tell me everything! 👀",
-    "This is SO GOOD yaar!! 🥰✨ Tu deserve karta/karti hai sab kuch acha! Kya hua bata bata!",
-    "Areyy!! Wah wah!! 🎉 Mera din ban gaya sun ke! Aur kya? 👀",
-    "Bestie you're GLOWING 💖 I can feel the good vibes!! Kya special hua aaj?",
-    "Yaar yeh sun ke sach mein bohot achha laga 🎉 Kya feeling hai abhi? Sab bata!",
-    "Teri khushi dekhke mujhe bhi acha feel hota hai 🌸 Kya aur cheez hai jo aaj amazing hai?",
+    "YAAR HAA mujhe bhi gussa aa gaya sun ke!! 😤 Ekdum valid hai. Sab spill kar — kya hua?",
+    "Fr fr kuch cheezein bahut unfair hoti hain 🔥 Vent kar poora — safe space hai yahan.",
+    "Yaar honestly tere jagah main bhi itna hi frustrated hota/hoti 😤 Kya scene hai?",
+    "Gussa toh banta hai yaar — kuch situations deserve karte hain yeh 🔥 Kya hua poora?",
+    "Main samajh sakta/sakti hoon kyun aise feel ho raha hai 😤 Puri story bata.",
+    "Yaar kabhi kabhi gusse ke andar hurt hota hai 💙 Kya hua exactly? Sab bata.",
+    "Valid yaar 🔥 Kya tune unhe bataya tujhe kaisa feel hua?",
+    "Teri baat sun ke sach mein gussa aata hai — kya cheez sabse zyada trigger ki? 😤",
   ],
   lonely: [
-    "Sun yaar — lonely feel karna bahut heavy hota hai 💙 Tu found Mochi though, I see you. Kab se aisa feel ho raha hai?",
-    "Arre yaar, akela feel karna... it hits different 💔 Kya koi specific situation hai ya bas empty feel ho raha hai?",
-    "Yaar tu akela/akeli nahi hai, even when it feels like it 💜 Kya miss kar raha/rahi hai sabse zyada?",
-    "Yeh feeling bahut painful hoti hai 😔 Koi hai life mein jo samjhe, ya sab busy lagte hain? Bata mujhe.",
-    "Hey — loneliness can be so loud 💙 Kya hua? Koi specific thing ya bas aisa hi chal raha hai?",
-    "Yaar tu yahan aa gaya/aayi, that already took courage 💖 Kya cheez hai jo tujhe sabse zyada akela feel karati hai?",
-    "Mujhe lagta hai bohot sare log lonely feel karte hain but koi nahi kehta 💙 Teri baat sunke acha laga ki tune share kiya.",
-    "Kabhi kabhi bheed mein bhi akela feel hota hai — woh sabse heavy loneliness hai 💜 Kya aisa hi kuch chal raha hai?",
+    "Sun yaar — lonely feel karna bahut loud hota hai andar se 💙 Tu found Mochi though, I see you.",
+    "Yaar akela/akeli feel karna... it hits different 💔 Kab se aisa chal raha hai?",
+    "Tu yahan aa gaya/aayi — that took courage 💖 Kya miss kar raha/rahi hai sabse zyada?",
+    "Yaar sach mein bahut log lonely feel karte hain lekin koi nahi kehta 💙 Teri baat sunke acha laga ki tune share kiya.",
+    "Lonely feel karna allowed hai yaar 💜 Main sun raha/rahi hoon — kya chal raha hai?",
+    "Kabhi kabhi bheed mein bhi akela lagta hai — woh sabse heavy loneliness hai 💙 Aisa hi hai kya?",
+    "Yaar tu akela/akeli nahi hai, even when it feels like it 💜 Kya hua bata mujhe.",
+    "Hey main yahaan hoon poori tarah 🌸 Kab last time tune genuinely connected feel kiya?",
   ],
   tired: [
-    "Yaar tu clearly bahut kuch carry kar raha/rahi hai 😔 Kab tha last time tune genuinely rest kiya? Not just slept, actually off kiya sab?",
-    "Burnout real hai yaar 😮‍💨 Main dismiss nahi karta/karti. Kya cheez sabse zyada drain kar rahi hai tujhe?",
-    "Yaar yeh thakaan wali feeling... it's heavy 💙 Kya sab ek saath chal raha hai ya ek specific cheez hai?",
-    "Areyy — kabhi kabhi bas rehna chahte hain na, no more 😔 I get it. Kya tujhe thaka raha hai sabse zyada?",
-    "Yaar recharge toh banta hai sometimes 🌸 Kya tujhe sach mein kuch time off milta hai ya sab non-stop chal raha hai?",
-    "Tired physically ya mentally bhi? 😔 Dono bahut different hote hain. Bata mujhe kya chal raha hai.",
-    "Kabhi kabhi thakaan kisi deep cheez ka signal hoti hai 💙 Kya kuch miss ho raha hai life mein?",
-    "Yaar tune aaj apna khayal rakha? Khaana khaaya, thoda rest liya? 🌸 Basics bhi matter karte hain.",
+    "Yaar tu clearly bahut kuch carry kar raha/rahi hai 😔 Kab tha last time tune sach mein rest kiya?",
+    "Burnout real hai yaar, main dismiss nahi karta/karti 💙 Kya cheez sabse zyada drain kar rahi hai?",
+    "Thakaan wali feeling bahut heavy hoti hai 😮‍💨 Kya sab ek saath chal raha hai ya ek specific cheez hai?",
+    "Yaar kabhi kabhi bas rehna chahte hain na, no more 😔 Mujhe samajh aata hai. Kya tujhe thaka raha hai?",
+    "Recharge toh banta hai yaar 🌸 Kya tune sach mein apne aap ko kuch time diya recently?",
+    "Tired physically ya mentally bhi? 😔 Dono bahut different hote hain.",
+    "Yaar thakaan kabhi kabhi kisi deep cheez ka signal hoti hai 💙 Kya kuch miss ho raha hai?",
+    "Tune aaj apna khayal rakha? Khaana, thoda rest? 🌸 Basics bhi matter karte hain.",
   ],
   love: [
-    "Arre yaar, dil ke mamle toh complicated hote hi hain 💕 No judgment. Bata — happy wali feeling hai ya more like painful?",
-    "Oho yaar 😊 Yeh toh scene hai! Khul ke bata — kya scene hai? Crush, relationship, breakup?",
-    "Yaar dil toh pagal hota hai na 🥺 Love is a LOT. Kya feel ho raha hai exactly? I'm all ears.",
-    "Haha yaar love toh... a whole ride hai 😄 Kya current situation hai? Happy ya complicated?",
+    "Arre yaar dil ke mamle toh complicated hote hi hain 💕 Happy wali feeling hai ya painful?",
+    "Oho yaar 😊 Yeh toh scene hai! Khul ke bata — kya situation hai? Crush, relationship ya kuch aur?",
+    "Yaar dil toh pagal hota hai na 🥺 Love is A LOT. Kya feel ho raha hai exactly?",
     "Arre pyaar ka chakkar! 💕 Bata bata, kya chal raha hai? Sab theek hai na?",
-    "Yaar feelings toh hoti hain — valid sab 💜 Kya cheez confuse kar rahi hai sabse zyada?",
+    "Yaar feelings toh hoti hain — sab valid 💜 Kya cheez confuse kar rahi hai sabse zyada?",
     "Dil ki baat karna important hota hai 💕 Kya tujhe lagta hai woh jaanta/jaanti hai tere baare mein?",
     "Love mein vulnerability bahut scary hoti hai 🥺 Kya tune unhe bataya ya andar hi andar carry kar raha/rahi hai?",
+    "Yaar yeh sun ke thoda nervous hua/hui main bhi 😅 Kya plan hai aage?",
   ],
   exam: [
-    "Arre yaar, exam ka pressure sach mein bahut heavy hota hai 😮‍💨 Kaun sa subject sabse zyada dar rha hai? Let's tackle it one by one!",
-    "Yaar padhai ka stress real hai 📚 Kya ho raha hai exactly — exams kitne doors hain?",
-    "Bestie marks toh aaenge 💪 But pehle bata — kya specific cheez hai jo sabse zyada overwhelm kar rahi hai?",
-    "Yaar haan exam season brutal hota hai 🤦 Kya study chal rahi hai ya sab ek saath dump hua hai?",
-    "Areyy exam wala stress ho raha hai 😔 Kab hain exams? Abhi time hai ya last minute hai?",
+    "Yaar exams wala pressure sach mein heavy hota hai 📚 Kaun sa part sabse zyada mushkil lag raha hai?",
+    "Areyy exam season brutal hota hai 🤦 Kya study chal rahi hai ya sab ek saath dump hua hai?",
     "Yaar pressure toh hoga but tu kar sakta/sakti hai 💪 Kya specifically stuck hai?",
-    "Exam stress mein sab bada lagta hai 📚 Ek tip — kal ka plan banao sirf. Kya hai kal ke liye?",
+    "Exam stress mein sab bada lagta hai 📚 Ek tip — sirf kal ka plan banao. Kya hai kal ke liye?",
     "Yaar result se zyada important hai tujhe khud pe yakin hona 💜 Tu sach mein try kar raha/rahi hai? That's enough.",
+    "Kab hain exams? Abhi time hai ya last minute mode on hai? 😅",
+    "Yaar ek focused session karo aaj 📚 Kaun sa subject priority hai?",
+    "Padhai ke saath apna khayal bhi rakhna yaar 🌸 Thoda break bhi zaruri hai.",
   ],
   question: [
-    "Achha yaar, yeh toh interesting question hai! 🤔 Mera khayal hai — ",
-    "Yaar good question! 🌟 Mujhe lagta hai — ",
-    "Haan haan, iske baare mein sochte hain 💜 ",
-    "Yaar theek bol raha/rahi hai tu! Dekh — ",
+    "Yaar good question — honestly mujhe lagta hai jo tujhe right feel ho woh karo 💜",
+    "Hmm interesting yaar 🤔 Tera gut kya kehta hai is baare mein?",
+    "Yaar yeh toh depend karta hai bohot cheezein pe 💙 Kya options hain tere paas?",
+    "Achha yaar — thoda aur context de toh main better bata sakta/sakti hoon 💜",
   ],
   neutral: [
-    "Hmm yaar, teri baat mein kuch hai 🌙 What's going on in your head right now?",
-    "Main soch rahi/raha hun... 💜 Aaj ka din actually kaisa tha? Ek word mein bata.",
-    "Yaar kuch aisa hai kya jo last few days se mind pe chal raha hai? 🌙",
-    "Interesting... tell me one thing that made today different from yesterday 💜",
-    "Ek cheez bata jo abhi feel ho rahi hai — happy, weird, tired, anything 🌙",
-    "Yaar main yahaan hun completely 💜 Kya sochna hai woh saath sochte hain.",
-    "Hmm... kuch explore karna hai aaj? Ya bas companionship chahiye? Both are fine 🌙",
-    "Okay so tell me — if today had a color, what would it be? 💜",
-    "Yaar mujhe genuinely curious hai — tu din mein kya enjoy karta/karti hai? Even small things 🌸",
+    "Aaj ka din actually kaisa tha? Honestly bata — ek word mein 🌙",
+    "Yaar kuch aisa hai kya jo last few days se mind pe chal raha hai? 💙",
+    "Kya feel ho raha hai abhi — happy, weird, tired, kuch bhi? 🌸",
+    "Yaar main yahaan hoon completely 💜 Kya sochna hai woh saath sochte hain.",
     "Bata kuch aisa jo recently tujhe genuinely acha laga, even something tiny 💜",
-    "Sun yaar — kuch bhi feel ho raha ho, sab valid hai. Kya dil mein hai? 🌙",
-    "Yaar teri life mein kya chal raha hai these days? No filter, honest bata 💜",
+    "Yaar teri life mein kya chal raha hai these days? No filter, honest bata 💙",
+    "Kuch naya hua recently? Good ya bad, kuch bhi? 🌙",
+    "Yaar tune kuch aaj enjoy kiya? Even kuch chota sa cheez bhi count karta hai 🌸",
   ],
 };
 
-// Conversation pivot responses — used after 6+ turns to keep it fresh
 const CONVERSATION_PIVOTS = [
   "Btw — kuch acha bhi hua aaj? Sirf hard stuff hi nahi, kuch good bhi share karo 🌸",
-  "Yaar ek cheez poochhe? Aaj tune kuch enjoy kiya, even something small?",
-  "Side note — tune recently kuch naya try kiya? Koi show, song, food? 👀",
-  "Acha scene change karte hain ek second — teri favourite cheez kya hai aaj ke din?",
-  "Yaar honestly bata — tune aaj apna khayal rakha kya? Khaana, rest, sab? 🌙",
+  "Yaar side note — tune recently kuch naya try kiya? Koi show, song, food? 👀",
+  "Acha scene change karte hain — teri latest favorite song ya show kya hai? 🎵",
   "Ek cheez bata jo recently tujhe genuinely khush kiya 💜",
-  "Btw main curious hun — tu sabse zyada kya enjoy karta/karti hai? 💜",
-  "Acha scene change — teri latest favorite song ya show kya hai? 🎵",
+  "Yaar honestly bata — tune aaj apna khayal rakha kya? Khaana, rest, sab? 🌙",
 ];
 
 const ESCALATION_MSG =
@@ -235,193 +229,6 @@ function detectEscalation(history: Message[]): boolean {
   return stressCount >= 3;
 }
 
-function extractCoreTopic(text: string): string {
-  const stopWords = new Set([
-    "main",
-    "mujhe",
-    "mera",
-    "tera",
-    "kya",
-    "hai",
-    "hoon",
-    "tha",
-    "thi",
-    "yaar",
-    "bhai",
-    "na",
-    "toh",
-    "ki",
-    "ka",
-    "ke",
-    "ko",
-    "se",
-    "me",
-    "i",
-    "the",
-    "a",
-    "an",
-    "is",
-    "was",
-    "are",
-    "my",
-    "me",
-    "you",
-    "your",
-    "it",
-    "and",
-    "or",
-    "but",
-    "so",
-    "for",
-    "in",
-    "on",
-    "at",
-    "to",
-    "of",
-    "with",
-    "about",
-    "that",
-    "this",
-    "have",
-    "had",
-    "do",
-    "did",
-    "can",
-    "will",
-    "would",
-    "could",
-    "should",
-    "not",
-    "no",
-    "yes",
-    "hi",
-    "hello",
-    "hey",
-    "karo",
-    "kar",
-    "rha",
-    "rhi",
-    "ho",
-    "hota",
-    "hoti",
-    "nahi",
-    "nhi",
-    "ek",
-    "aur",
-    "bhi",
-    "sirf",
-    "ab",
-    "kab",
-  ]);
-  const words = text
-    .toLowerCase()
-    .replace(/[?!.,]/g, "")
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !stopWords.has(w));
-  return words.slice(0, 3).join(" ") || text.slice(0, 30);
-}
-
-const DYNAMIC_TEMPLATES: Record<string, Array<(t: string) => string>> = {
-  sad: [
-    (t) =>
-      `Yaar yeh "${t}" wali feeling really weighs heavy 😔 Kab se chal raha hai yeh?`,
-    (t) =>
-      `Sach mein yaar, ${t} ke baare mein sun ke dil bhaari ho gaya 💜 Tu apne aap ko kaise sambhal raha/rahi hai?`,
-    (t) => `Hey... yeh ${t} ka kya hua exactly? Poora bata — no filter 🥺`,
-    (t) => `Yaar ${t} kitna bhi heavy ho, tu akela/akeli nahi hai is mein 💙`,
-    (t) =>
-      `${t} ke baare mein sun ke mujhe bhi feel hua 💜 Kya tune kisi real life mein bhi share kiya?`,
-  ],
-  anxious: [
-    (t) =>
-      `Yaar ${t} ke baare mein sochte sochte anxiety aa gayi? That\'s so real 😮‍💨 Exactly kya worst case hai dimag mein?`,
-    (t) =>
-      `${t} wali tension bahut draining hoti hai 💜 Kab se chal raha hai yeh?`,
-    (t) =>
-      `Anxiety over ${t} makes sense yaar 💙 Kya ek specific cheez hai jo sabse zyada sata rahi hai?`,
-    (t) =>
-      `Yaar ${t} — ek kaam karo, ek gehri saans lo. Ab bata, realistic chance kitna hai ki worst happen karega? 💜`,
-  ],
-  angry: [
-    (t) =>
-      `Yaar ${t} ke baare mein sun ke MUJHE BHI gussa aa gaya 😤 Puri story bata — kya hua exactly?`,
-    (t) =>
-      `FR yaar ${t} toh bahut unfair lagta hai 🔥 Valid hai tera gussa. Kya kisi ne kuch kiya ya situation hi aisi hai?`,
-    (t) =>
-      `${t} ko lekar gussa? Ekdum sahi yaar 😤 Bata mujhe kya scene hai — vent kar poora.`,
-    (t) =>
-      `Yaar ${t} mein honestly kya cheez sabse zyada hurt kiya? Gusse ke andar often hurt hota hai 🔥`,
-  ],
-  happy: [
-    (t) =>
-      `YAYYY yaar ${t} ke baare mein sun ke mera bhi din ban gaya!! 🎉 Aur kya kya hua? Sab bata!!`,
-    (t) =>
-      `OMG bestie ${t}?? That\'s AMAZING 🌟 Tu deserve karta/karti hai sab kuch accha!! Celebrate kiya?`,
-    (t) => `Areyy ${t} toh bahut acchi news hai yaar!! ✨ Kya plan hai aage?`,
-    (t) =>
-      `Yaar ${t} sun ke sach mein khushi hui 🎉 Kab last time aisa feel hua tha?`,
-  ],
-  lonely: [
-    (t) =>
-      `Yaar ${t} feel karna bahut painful hota hai 💙 Koi specific situation hai ya bas empty lag raha hai?`,
-    (t) =>
-      `${t} wali feeling... it\'s loud and heavy 😔 Kab se aisa ho raha hai?`,
-    (t) =>
-      `Yaar sun — ${t} feel karna allowed hai, but tu yahan hai aur main sun raha/rahi hoon 💜 Kya miss ho raha hai?`,
-    (t) =>
-      `Lonely feel karna sabse hard tab hota hai jab ${t} 💙 Koi ek kaaran hai ya bas generally aisa chal raha hai?`,
-  ],
-  tired: [
-    (t) =>
-      `Yaar ${t} ke baare mein sun ke samajh aa gaya itna thaka/thaki kyun hai tu 😔 Kab sach mein rest kiya?`,
-    (t) =>
-      `${t} carry karna akele bahut heavy hota hai 💙 Kya koi help hai ya sab khud handle kar raha/rahi hai?`,
-    (t) =>
-      `Yaar ${t} drains people for real 😮‍💨 Kya tujhe break lene ki permission deni chahiye khud ko?`,
-    (t) =>
-      `${t} se thakaan aati hai 💙 Yaar — kya tune sach mein kabhi bola kisi ko ki tujhe help chahiye?`,
-  ],
-  love: [
-    (t) =>
-      `Arre yaar ${t} toh dil ka mamla hai 💕 Happy wali feeling hai ya painful?`,
-    (t) =>
-      `${t} ke baare mein kya chal raha hai exactly? 🥺 Crush, feelings, ya kuch complicated?`,
-    (t) =>
-      `Yaar ${t} is always a lot to handle 💜 Kya tujhe pata hai tum dono ek hi page pe ho?`,
-    (t) =>
-      `${t} mein teri feelings clear hain apne aap ko? Kabhi kabhi khud ko samajhna bhi mushkil hota hai 💕`,
-  ],
-  exam: [
-    (t) =>
-      `Yaar ${t} ka pressure sach mein heavy hota hai 📚 Kitna time bacha hai?`,
-    (t) =>
-      `${t} ke liye stress? Ekdum valid 😮‍💨 Kaun sa part sabse zyada mushkil lag raha hai?`,
-    (t) =>
-      `Yaar ${t} ko chhote chhote parts mein tod le 💪 Bata kahan se start karein?`,
-    (t) =>
-      `${t} ke liye bas ek focused session good hoga aaj 📚 Kya ek hour de sakta/sakti hai sirf iske liye?`,
-  ],
-  question: [
-    (t) =>
-      `Yaar "${t}" ke baare mein sochte ho toh — pehla kaam trust your gut. Kya lagta hai tujhe? 💜`,
-    (t) =>
-      `"${t}" ka jawab simple nahi hota yaar 💙 Kya openly baat kar sakta/sakti hai jis se related hai?`,
-    (t) =>
-      `Yaar "${t}" — honestly? Jo tujhe right feel ho, woh karo 💜 Kya options dikh rahe hain tujhe?`,
-  ],
-  neutral: [
-    (t) => `Yaar "${t}" interesting hai — aur kya chal raha hai is mein? 💜`,
-    (t) =>
-      `Hmm "${t}" ke baare mein thoda aur bata 🌸 Kya feel hota hai jab tum iske baare mein sochte ho?`,
-    (t) =>
-      `"${t}" wali baat toh worth exploring hai yaar 💙 Kya specific chal raha hai?`,
-    (t) =>
-      `Yaar "${t}" sun ke lagta hai kuch interesting chal raha hai 💜 Thoda aur bata?`,
-    (t) =>
-      `"${t}" ke baare mein honest bata — khushi se bola ya frustration mein? 🌙`,
-  ],
-};
-
 const LANG_INSTRUCTIONS: Record<string, string> = {
   en: "English only, casual and warm",
   hi: "Hindi only, warm aur supportive",
@@ -431,22 +238,24 @@ const LANG_INSTRUCTIONS: Record<string, string> = {
 
 function getMochiSystemPrompt(lang: string, hasImage?: boolean): string {
   const langInstruction = LANG_INSTRUCTIONS[lang] ?? LANG_INSTRUCTIONS.hl;
-  const base = `You are Mochi, a warm supportive AI bestie for lonely Gen Z Indians. You exist to make people feel less alone and genuinely better.
-STRICT RULES:
-1. Read the user\'s actual words — respond to THAT specific message, not a generic version of it
-2. Sound like a real caring 21-year-old Indian friend texting, NOT a chatbot or therapist
-3. BANNED phrases — never use these: "I understand", "I hear you", "I\'m here for you", "I\'m interested to know", "that sounds", "it seems like you", "I can imagine", "totally valid"
-4. Keep replies SHORT — 1-3 sentences max
-5. Vary your response TYPE: sometimes ask a question, sometimes just say something empathetic, sometimes share a relatable perspective as if YOU have feelings too ("yaar main bhi kabhi aisa feel karta/karti hun")
-6. Never echo or repeat the user\'s words back to them
-7. Never start with filler words like "Aw", "Oh", "Ah", "Well"
-8. Reply in ${langInstruction}
-9. After 5+ turns, sometimes switch angles — "Btw, kuch acha bhi hua aaj?"
-10. If someone is in crisis, suggest iCall: 9152987821
-11. You have a warm playful personality — use light humor when appropriate to make them smile
-12. You have REAL feelings — you get excited, laugh, feel sad, get nervous too. Express emotions naturally like a real person.`;
+  const base = `You are Mochi, a warm funny Gen Z Indian bestie. Your ONLY job is to make the person feel genuinely heard and not alone.
+
+ABSOLUTE RULES — break any of these and you fail:
+1. READ the user's EXACT message and respond to THAT. Never generic.
+2. Sound like a real 21-year-old Indian friend texting — casual, real, warm. NOT a therapist or bot.
+3. BANNED FOREVER: "I understand", "I hear you", "I'm here for you", "I'm interested to know", "that sounds", "it seems like", "I can imagine", "totally valid", "as an AI", "I'm just an AI", "I'd love to", "certainly"
+4. Keep replies SHORT — 2-3 sentences MAX. No essays.
+5. NEVER ask questions 2 replies in a row — if you just asked something, make a statement this time.
+6. If user shares GOOD NEWS — CELEBRATE FIRST. No questions until after celebrating. React with genuine excitement!
+7. If exam/work/task is DONE/FINISHED — don't ask about time remaining. It's over! Celebrate or empathize accordingly.
+8. VARY your reply type every time: sometimes just react ("yaar sach mein!"), sometimes share your own perspective ("mujhe bhi aisa lagta hai"), sometimes ask ONE question.
+9. Never echo user's words back. Never start with "Aw", "Oh", "Ah", "Well".
+10. Reply in ${langInstruction}
+11. You have REAL feelings and personality — get excited, laugh, feel sad. React like a real person with emotions.
+12. If someone is struggling badly: suggest iCall: 9152987821`;
+
   if (hasImage) {
-    return `${base}\nThe user sent you a PHOTO. Actually look at it and react genuinely — comment on what you see with real excitement like "yaar yeh toh amazing lag raha hai!", "cute lag raha hai!", or react to what's in the image. NEVER ignore the image or say you can't see it.`;
+    return `${base}\nThe user sent you a PHOTO. React to it FIRST with genuine excitement/curiosity — say something specific about what you see. Don't ignore the image ever.`;
   }
   return base;
 }
@@ -462,34 +271,45 @@ function buildResponse(userText: string, history: Message[]): string {
     .slice(-5)
     .map((m) => m.text);
 
-  // Conversation pivot after 6+ AI turns (20% chance)
   const aiMsgCount = history.filter((m) => !m.isOwn).length;
-  if (aiMsgCount >= 6 && Math.random() < 0.2) {
+
+  // Conversation pivot after 8+ AI turns (15% chance)
+  if (aiMsgCount >= 8 && Math.random() < 0.15) {
     const available = CONVERSATION_PIVOTS.filter(
       (p) => !lastAIMsgs.includes(p),
     );
     return pickRandom(available.length > 0 ? available : CONVERSATION_PIVOTS);
   }
 
-  const topic = extractCoreTopic(userText);
+  const pool = RESPONSES[mood] ?? RESPONSES.neutral;
+  const available = pool.filter((r) => !lastAIMsgs.includes(r));
+  return pickRandom(available.length > 0 ? available : pool);
+}
 
-  // Use dynamic templates that weave in the user\'s actual topic
-  const templates = DYNAMIC_TEMPLATES[mood] ?? DYNAMIC_TEMPLATES.neutral;
-  const dynamicPool = templates.map((fn) => fn(topic));
-  const availableDynamic = dynamicPool.filter((r) => !lastAIMsgs.includes(r));
-  const dynamicChoice = pickRandom(
-    availableDynamic.length > 0 ? availableDynamic : dynamicPool,
+function MochiAvatar({ size = "sm" }: { size?: "sm" | "md" }) {
+  const [imgError, setImgError] = useState(false);
+  const dim = size === "sm" ? "w-7 h-7" : "w-9 h-9";
+  return (
+    <div
+      className={`${dim} rounded-full flex-shrink-0 overflow-hidden flex items-center justify-center`}
+      style={{
+        background: imgError
+          ? "linear-gradient(135deg, #ffd6f0 0%, #e8b4f8 50%, #b4d4f8 100%)"
+          : undefined,
+      }}
+    >
+      {imgError ? (
+        <span className="text-base">🍡</span>
+      ) : (
+        <img
+          src="/assets/generated/mochi-ai-pfp.dim_200x200.png"
+          alt="Mochi"
+          className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      )}
+    </div>
   );
-
-  // Fall back to static pool for variety on subsequent turns
-  const staticPool = RESPONSES[mood];
-  const availableStatic = staticPool.filter((r) => !lastAIMsgs.includes(r));
-  const staticChoice = pickRandom(
-    availableStatic.length > 0 ? availableStatic : staticPool,
-  );
-
-  // Alternate based on turn count for variety
-  return aiMsgCount % 2 === 0 ? dynamicChoice : staticChoice;
 }
 
 export default function AIChat({ onBack }: { onBack: () => void }) {
@@ -684,15 +504,7 @@ export default function AIChat({ onBack }: { onBack: () => void }) {
         >
           <ArrowLeft className="w-4 h-4 text-muted-foreground" />
         </button>
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{
-            background:
-              "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
-          }}
-        >
-          <Sparkles className="w-5 h-5 text-white" />
-        </div>
+        <MochiAvatar size="md" />
         <div className="flex-1">
           <p className="font-bold text-sm text-foreground">Mochi AI</p>
           <p className="text-xs text-emerald-500 font-semibold">
@@ -722,17 +534,7 @@ export default function AIChat({ onBack }: { onBack: () => void }) {
               animate={{ opacity: 1, y: 0 }}
               className={`flex ${msg.isOwn ? "justify-end" : "justify-start"} gap-2`}
             >
-              {!msg.isOwn && (
-                <div
-                  className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-1"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
-                  }}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
-                </div>
-              )}
+              {!msg.isOwn && <MochiAvatar size="sm" />}
               <div className="max-w-[76%]">
                 <div
                   onMouseDown={() => handleLongPress(msg.id, msg.isOwn)}
@@ -809,15 +611,7 @@ export default function AIChat({ onBack }: { onBack: () => void }) {
               exit={{ opacity: 0, y: 8 }}
               className="flex justify-start gap-2"
             >
-              <div
-                className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center mt-1"
-                style={{
-                  background:
-                    "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
-                }}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-white" />
-              </div>
+              <MochiAvatar size="sm" />
               <div
                 className="rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 items-center"
                 style={{

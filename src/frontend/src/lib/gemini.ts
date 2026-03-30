@@ -1,21 +1,16 @@
-const OPENROUTER_API_KEY =
-  "sk-or-v1-9c6b8e3f2d1a4b7c0e5f8a2d9b6e3c7f1a4d8b2e5c9f3a6d0b7e4c1f8a2d5b9";
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const TEXT_MODEL = "meta-llama/llama-3.3-70b-instruct";
-const VISION_MODEL = "google/gemini-flash-1.5";
+// Pollinations.ai — free, no API key needed
+const POLLINATIONS_URL = "https://text.pollinations.ai/";
 
 async function doRequest(
   systemPrompt: string,
   history: { role: "user" | "model"; text: string }[],
   userMessage: string,
   imageBase64?: string | null,
-  timeoutMs = 12000,
+  timeoutMs = 20000,
+  model = "openai-large",
 ): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-  const useVision = !!imageBase64;
-  const model = useVision ? VISION_MODEL : TEXT_MODEL;
 
   try {
     type ContentPart =
@@ -31,40 +26,33 @@ async function doRequest(
       })),
     ];
 
-    // Build last user message — include image if provided
+    const useVision = !!imageBase64;
+
     if (useVision && imageBase64) {
       const parts: ContentPart[] = [];
       if (userMessage) parts.push({ type: "text", text: userMessage });
-      parts.push({
-        type: "image_url",
-        image_url: { url: imageBase64 },
-      });
+      parts.push({ type: "image_url", image_url: { url: imageBase64 } });
       messages.push({ role: "user", content: parts });
     } else {
       messages.push({ role: "user", content: userMessage });
     }
 
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetch(POLLINATIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Mochi App",
-      },
+      headers: { "Content-Type": "application/json" },
       signal: controller.signal,
       body: JSON.stringify({
         model,
         messages,
         max_tokens: 180,
-        temperature: 1.0,
+        temperature: 0.95,
+        seed: Math.floor(Math.random() * 999999),
       }),
     });
 
     clearTimeout(timer);
     if (!res.ok) return null;
-    const data = await res.json();
-    const text = data?.choices?.[0]?.message?.content;
+    const text = await res.text();
     return text ? text.trim() : null;
   } catch {
     clearTimeout(timer);
@@ -78,24 +66,27 @@ export async function callGemini(
   userMessage: string,
   imageBase64?: string | null,
 ): Promise<string | null> {
-  // First attempt: with conversation history
+  // Try GPT-4o first
   const result = await doRequest(
     systemPrompt,
     history,
     userMessage,
     imageBase64,
+    20000,
+    "openai-large",
   );
-  if (result) return result;
+  if (result && result.length > 5) return result;
 
-  // Second attempt: without history (lighter, faster)
+  // Retry with smaller model, no history
   const result2 = await doRequest(
     systemPrompt,
     [],
     userMessage,
     imageBase64,
-    8000,
+    15000,
+    "openai",
   );
-  if (result2) return result2;
+  if (result2 && result2.length > 5) return result2;
 
   return null;
 }

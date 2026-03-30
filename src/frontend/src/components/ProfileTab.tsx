@@ -31,6 +31,9 @@ import {
   useSaveProfile,
 } from "../hooks/useQueries";
 
+const MOCHI_IMG =
+  "/assets/file_0000000044cc72089f5bf3d9c00c79db-019d3fa6-47c7-720f-91f8-b7ac04a7f42a.png";
+
 const LANGUAGES: { code: Language; label: string; flag: string }[] = [
   { code: "en", label: "English", flag: "🇺🇸" },
   { code: "hi", label: "हिंदी", flag: "🇮🇳" },
@@ -115,6 +118,97 @@ function getProgressToNext(points: number) {
 }
 
 const ANONYMOUS_PRINCIPAL = "2vxsx-fae";
+
+function MochiProfileGuide() {
+  const [dismissed, setDismissed] = useState(
+    () => !!localStorage.getItem("mochi_profile_guide_dismissed"),
+  );
+
+  if (dismissed) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        key="profile-guide"
+        initial={{ opacity: 0, y: -12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: -10, scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 320, damping: 28 }}
+        data-ocid="profile.guide.card"
+        className="mx-4 mb-4 rounded-2xl p-3 relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, oklch(0.97 0.03 355 / 0.95), oklch(0.96 0.04 268 / 0.9))",
+          border: "1.5px solid oklch(0.78 0.10 290 / 0.4)",
+          backdropFilter: "blur(12px)",
+          boxShadow:
+            "0 4px 24px oklch(0.72 0.11 355 / 0.15), 0 1px 4px oklch(0.72 0.11 355 / 0.1)",
+        }}
+      >
+        {/* Gradient border shimmer */}
+        <div
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(135deg, oklch(0.72 0.11 355 / 0.08), oklch(0.62 0.10 268 / 0.06))",
+          }}
+        />
+
+        <div className="flex items-start gap-3 relative">
+          {/* Mochi mascot */}
+          <motion.img
+            src={MOCHI_IMG}
+            alt="Mochi guide"
+            className="w-12 h-12 object-contain flex-shrink-0"
+            animate={{ y: [0, -3, 0] }}
+            transition={{
+              repeat: Number.POSITIVE_INFINITY,
+              duration: 2,
+              ease: "easeInOut",
+            }}
+          />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="font-black text-sm text-gray-800">
+                Profile Guide 🗺️
+              </span>
+              <button
+                type="button"
+                data-ocid="profile.guide.close_button"
+                onClick={() => {
+                  localStorage.setItem("mochi_profile_guide_dismissed", "true");
+                  setDismissed(true);
+                }}
+                className="p-1 rounded-full hover:bg-black/10 transition-colors flex-shrink-0"
+                aria-label="Dismiss guide"
+              >
+                <X className="w-3.5 h-3.5 text-gray-500" />
+              </button>
+            </div>
+
+            <ul className="space-y-1">
+              {[
+                { icon: "📸", text: "Add profile photo via camera icon" },
+                { icon: "✏️", text: "Edit name & bio" },
+                { icon: "🎨", text: "Change avatar color" },
+                { icon: "🌍", text: "Change language below" },
+              ].map((tip) => (
+                <li
+                  key={tip.text}
+                  className="flex items-center gap-1.5 text-xs text-gray-600"
+                >
+                  <span className="text-sm flex-shrink-0">{tip.icon}</span>
+                  <span>{tip.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
 
 export default function ProfileTab() {
   const { lang, setLang, t } = useLanguage();
@@ -274,6 +368,9 @@ export default function ProfileTab() {
           </div>
         </div>
       </header>
+
+      {/* Mochi Profile Guide tip */}
+      <MochiProfileGuide />
 
       {!isLoggedIn && (
         <motion.div

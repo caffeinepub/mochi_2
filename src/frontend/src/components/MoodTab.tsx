@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/LanguageContext";
 import { useAddMoodEntry } from "../hooks/useQueries";
@@ -234,6 +234,8 @@ export default function MoodTab() {
   const addMoodEntry = useAddMoodEntry();
   const motivational =
     MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
+
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
 
   // Recheck on mount in case the date changed while app was open
   useEffect(() => {
@@ -511,7 +513,16 @@ export default function MoodTab() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              onPointerDown={() => setActiveGame(game.id)}
+              onPointerDown={(e) => {
+                pointerStart.current = { x: e.clientX, y: e.clientY };
+              }}
+              onPointerUp={(e) => {
+                if (!pointerStart.current) return;
+                const dx = e.clientX - pointerStart.current.x;
+                const dy = e.clientY - pointerStart.current.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 8) setActiveGame(game.id);
+                pointerStart.current = null;
+              }}
               whileTap={{ scale: 0.95 }}
               className="flex-shrink-0 w-36 rounded-2xl p-4 text-left shadow-card border border-white/40 hover:shadow-card-hover transition-all duration-200 active:scale-[0.97]"
               style={{ background: game.gradient, touchAction: "manipulation" }}
