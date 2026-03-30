@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
@@ -81,7 +81,22 @@ export default function BreathingGame({ onBack }: { onBack: () => void }) {
             </p>
           )}
         </div>
-        <div className="w-9" />
+        <button
+          type="button"
+          data-ocid="breathing.secondary_button"
+          onClick={() => {
+            setDone(false);
+            setRound(1);
+            setPhaseIndex(0);
+            setRunning(false);
+          }}
+          className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
+        >
+          <RefreshCw
+            className="w-5 h-5"
+            style={{ color: "oklch(0.45 0.10 300)" }}
+          />
+        </button>
       </div>
 
       {/* Main content */}

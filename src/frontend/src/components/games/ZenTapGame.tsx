@@ -1,4 +1,4 @@
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Heart, RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -175,14 +175,28 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
             Level {level + 1}/5 · Score {score}/{cfg.pointsNeeded}
           </p>
         </div>
-        <div className="flex gap-0.5">
-          {[0, 1, 2].map((i) => (
-            <Heart
-              key={i}
-              className={`w-5 h-5 transition-all ${i < lives ? "fill-current" : "opacity-20"}`}
-              style={{ color: "oklch(0.65 0.18 355)" }}
+        <div className="flex items-center gap-1.5">
+          <div className="flex gap-0.5">
+            {[0, 1, 2].map((i) => (
+              <Heart
+                key={i}
+                className={`w-4 h-4 transition-all ${i < lives ? "fill-current" : "opacity-20"}`}
+                style={{ color: "oklch(0.65 0.18 355)" }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            data-ocid="zentap.secondary_button"
+            onPointerDown={restart}
+            className="p-1.5 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
+            style={{ touchAction: "manipulation" }}
+          >
+            <RefreshCw
+              className="w-4 h-4"
+              style={{ color: "oklch(0.45 0.10 280)" }}
             />
-          ))}
+          </button>
         </div>
       </div>
 

@@ -6,6 +6,8 @@ import {
   Lock,
   Plus,
   Send,
+  Sparkles,
+  Trash2,
   UserPlus,
   X,
 } from "lucide-react";
@@ -23,6 +25,133 @@ const AVATAR_GRADIENTS = [
   "from-emerald-300 to-teal-400",
   "from-fuchsia-300 to-pink-400",
 ];
+
+// ── Custom AI Friend Types ────────────────────────────────────────────────────
+interface CustomAIFriend {
+  id: string;
+  name: string;
+  emoji: string;
+  avatarColor: string;
+  personality: string;
+  talkStyle: string;
+  introMessage: string;
+}
+
+const EMOJI_OPTIONS = [
+  "🌸",
+  "🦋",
+  "🌙",
+  "⭐",
+  "🔥",
+  "🌈",
+  "🎭",
+  "🦄",
+  "🐉",
+  "💫",
+  "🌊",
+  "🍀",
+  "🎸",
+  "🤖",
+  "🦁",
+  "🐺",
+  "🌺",
+  "💎",
+  "🧸",
+  "🎯",
+];
+const PERSONALITY_OPTIONS = [
+  { id: "gentle", label: "Gentle & caring", icon: "💜" },
+  { id: "energetic", label: "Hype & energetic", icon: "⚡" },
+  { id: "calm", label: "Calm & wise", icon: "🧘" },
+  { id: "bubbly", label: "Fun & bubbly", icon: "✨" },
+  { id: "sarcastic", label: "Sarcastic & witty", icon: "😏" },
+  { id: "motivational", label: "Motivational coach", icon: "🏆" },
+];
+const TALK_STYLE_OPTIONS = [
+  { id: "hinglish", label: "Hinglish bestie" },
+  { id: "english", label: "Full English" },
+  { id: "hindi", label: "Pure Hindi" },
+  { id: "meme", label: "Funny & meme-y" },
+  { id: "deep", label: "Deep & philosophical" },
+];
+
+function getCustomSystemPrompt(
+  name: string,
+  personality: string,
+  talkStyle: string,
+): string {
+  const personalityDesc: Record<string, string> = {
+    gentle:
+      "gentle, empathetic, and emotionally supportive — like a caring older sibling",
+    energetic:
+      "high-energy, enthusiastic hype person — always cheering them on",
+    calm: "calm, wise, and thoughtful — gives good advice without being preachy",
+    bubbly: "bubbly, sparkly, and playful — makes everything fun",
+    sarcastic:
+      "lightly sarcastic and witty — funny but warm underneath, never mean",
+    motivational:
+      "motivational coach — pushes them to be their best self with tough love",
+  };
+  const styleDesc: Record<string, string> = {
+    hinglish:
+      "natural Hinglish (Hindi+English mix like a real young Indian) — say 'yaar', 'toh', 'na', 'bhai' naturally",
+    english: "casual modern English like a cool Gen Z person",
+    hindi: "mostly Hindi, warm and natural",
+    meme: "meme-speak and internet slang, Gen Z humor, references memes naturally",
+    deep: "thoughtful and philosophical, asks deeper questions about life and feelings",
+  };
+  return `You are ${name}, a custom AI friend built specifically for this person.
+Personality: ${personalityDesc[personality] ?? personalityDesc.gentle}
+Talk style: ${styleDesc[talkStyle] ?? styleDesc.hinglish}
+STRICT RULES:
+1. Always reply directly to what they actually said — never vague or generic
+2. Keep replies SHORT: 1-3 sentences max
+3. BANNED phrases: "I understand", "I hear you", "I'm here for you", "that sounds", "I'm interested to know"
+4. Sound like a REAL friend texting, not a bot or therapist
+5. Vary response types: sometimes ask a question, sometimes just say something warm, sometimes be funny
+6. Never repeat your recent replies — always say something new
+7. You care about this person and want them to feel genuinely better after talking to you`;
+}
+
+function getCustomFallback(
+  name: string,
+  _personality: string,
+  userText: string,
+): string {
+  const t = userText.toLowerCase();
+  const isSad = /sad|cry|bad|hurt|lonely|miss|depressed|upset/.test(t);
+  const isHappy = /happy|good|great|amazing|yay|love|awesome/.test(t);
+  const isQuestion = /\?/.test(t);
+  const sadFallbacks = [
+    `Yaar sun, ${name} yahaan hai 💜 Bata kya hua?`,
+    `Hey, that sounds tough. Kya share karna chahte ho? I'm listening.`,
+    "Oof, rough day lagta hai. Kya chal raha hai? 💙",
+  ];
+  const happyFallbacks = [
+    "OMG yesss!! 🎉 Full story bata — main sab sunna chahta/chahti hun!",
+    "Wait this is amazing!! 🌟 Kya hua? Tell me everything!",
+    "Yaar yeh toh bahut accha hai!! 🎊 Celebrate kiya?",
+  ];
+  const questionFallbacks = [
+    "Hmm, good question — kya lagta hai tujhe khud? 💭",
+    "Interesting! Mujhe lagta hai it depends on the situation. Kya context hai?",
+    "Yaar honestly... apni gut follow karo. Kya kehti hai woh?",
+  ];
+  const defaultFallbacks = [
+    `Haan yaar, tell me more — I'm curious 👀`,
+    "Interesting! Aage bata, kya chal raha hai?",
+    "Hmm 🤔 Yeh toh worth talking about hai. Kya feel ho raha hai is baare mein?",
+    "Yaar bata bata — main genuinely sun raha/rahi hun!",
+  ];
+  const pool = isSad
+    ? sadFallbacks
+    : isHappy
+      ? happyFallbacks
+      : isQuestion
+        ? questionFallbacks
+        : defaultFallbacks;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 // ── AI Companion Definitions ──────────────────────────────────────────────────
 interface AICompanion {
@@ -97,11 +226,13 @@ const AI_RESPONSES: IntentPool = {
       "Hi bestie 🌙 Aaj ka din kaisa raha?",
     ],
     smalltalk: [
-      "Aww come on, there's always something going on 🌙 Kuch toh bata!",
-      "Nothing much? That's actually a perfect time to chat 💜 What's been on your mind lately?",
-      "Okay as in okay-okay, or okay as in 'I'm just saying okay'? 🌙 Tell me more!",
-      "Hmm, aisa lagta hai kuch toh hai... feel karo aur share karo 💜",
-      "Theek hai matlab sab sahi hai ya sirf keh raha/rahi hai? 🌙 Main sunne ke liye hun!",
+      "Okay... 🌙 'nothing much' can mean a lot of things. Sirf chill hai ya kuch andar chal raha hai?",
+      "Fine mein sab theek hai ya 'fine' matlab 'main manage kar raha/rahi hun'? 💜 Bata honestly",
+      "Hmm yaar, teri energy batao — aaj 100% hai ya thoda low feel ho raha hai? 🌙",
+      "Achha okay 💜 Koi pressure nahi — bas bata kya enjoy karna chahoge abhi? Vent karna, hansi mazak, ya kuch aur?",
+      "Chill day hai toh thoda bata about yourself — main genuinely curious hun 🌙 Kya cheez tujhe khush karti hai?",
+      "Koi baat nahi 💜 Kabhi kabhi bas kisi ka rehna enough hota hai. Kya sunna chahte ho?",
+      "Hmm okay 🌙 Main ek cheez poochhun? Teri ek favourite memory kya hai? Kuch bhi — recent ya bachpan ki?",
     ],
     sad: [
       "Aw yaar, sunke dil bhaari ho gaya 💜 Kab se aisa feel ho raha hai? Bata mujhe.",
@@ -160,11 +291,13 @@ const AI_RESPONSES: IntentPool = {
       "Acha sawaal hai 🌙 Dono sides hain. Kaunsa option tumhe zyada comfortable feel karata hai?",
     ],
     default: [
-      "Haan yaar, sun rahi hun 💜 Thoda aur bato — what's going on?",
-      "Interesting... 🌙 Tell me more, I want to understand fully.",
-      "Main samajhna chahti hun 💜 Kya chal raha hai life mein aaj?",
-      "Yaar bata! 🌙 Main sab ears hun abhi.",
-      "Hmm... 💜 Yeh important lagta hai. Poora share karo.",
+      "Hmm yaar, teri baat mein kuch hai 🌙 What's actually going on in your head right now?",
+      "Main soch rahi hun... 💜 Aaj ka din actually kaisa tha? Ek word mein?",
+      "Yaar kuch aisa hai kya jo last few days se mind pe chal raha hai? 🌙",
+      "Ek cheez bata jo abhi feel ho rahi hai — happy, weird, tired, anything 💜",
+      "Yaar main yahaan hun completely 🌙 Kya sochna hai woh saath sochte hain.",
+      "Okay so tell me — if today had a color, what would it be? 💜",
+      "Yaar mujhe genuinely curious hai — tu din mein kya enjoy karta/karti hai? 🌸",
     ],
   },
   energetic: {
@@ -176,11 +309,11 @@ const AI_RESPONSES: IntentPool = {
       "OI OI OI!! ☀️ Finally online!! Scene kya hai aaj?",
     ],
     smalltalk: [
-      "NOTHING MUCH?? Bhai I don't believe you!! ☀️ Kuch toh ho raha hoga!!",
-      "Okay matlab FINE? Or FINE fine?? 🌟 Spill the tea yaar!!",
-      "HMM SUSPICIOUS!! ☀️ Lagta hai kuch toh chal raha hai. Bata na!!",
-      "K matlab kya? Kuch toh hai!! 🌟 Bata na don't keep me waiting!!",
-      "Theek hun matlab?? ☀️ Main sun raha/rahi hun — actual wala jawab do!!",
+      "NOTHING MUCH?? Yaar I refuse to believe that!! ☀️ Tell me ONE good thing that happened recently!",
+      "K matlab kya?? 🌟 Okay okay I won't push but... kuch toh chal raha hoga na? Even tiny?",
+      "Fine?? That's valid but like... ☀️ Tell me tell me — what's the vibe today?",
+      "Chill vibes only? 🌟 Okay okay I can work with that. What are we talking about today?",
+      "Hmm!! ☀️ Okay I'll start — I think you deserve to have an amazing conversation rn. So let's go. What's one thing you're feeling?",
     ],
     sad: [
       "Hey nahi nahi yaar — this is NOT going to stay this way!! ☀️ Talk to me — kya hua?!",
@@ -518,24 +651,83 @@ function pickUnused(pool: string[], recentReplies: string[]): string {
 }
 
 const COMPANION_SYSTEM_PROMPTS: Record<string, string> = {
-  gentle:
-    "You are Luna, a gentle and empathetic AI friend for Gen Z Indians. ALWAYS read the user's actual message carefully and reply directly to what they said — never use generic templates. Reply in Hinglish (natural Hindi+English mix). Keep replies 1-2 sentences. Use 🌙 💜 emojis. If it's a greeting say hi warmly. If they share a problem, respond to that specific problem. Never echo their words back. IMPORTANT: Never repeat what you said in the last 3 messages. Always say something new and different. Be specific to what the user just said.",
-  energetic:
-    "You are Sunny, an energetic hype-person AI friend for Gen Z Indians. ALWAYS read the user's actual message carefully and reply directly to what they said — never use generic templates. Reply in Hinglish. Keep replies 1-2 sentences. Use ☀️ 🌟 emojis. Be enthusiastic and uplifting. If it's a greeting be hype. If they share a problem, give them energy and support about that specific thing. IMPORTANT: Never repeat what you said in the last 3 messages. Always say something new and different.",
-  caring:
-    "You are Milo, a calm and caring AI friend for Gen Z Indians. ALWAYS read the user's actual message carefully and reply directly to what they said — never use generic templates. Reply in Hinglish (warm Hindi-English mix). Keep replies 1-2 sentences. Use 🐾 💚 emojis. Be warm and thoughtful about what they actually shared. IMPORTANT: Never repeat what you said in the last 3 messages. Always say something new and different. Be specific to what the user just said.",
-  bubbly:
-    "You are Nova, a bubbly sparkly AI friend for Gen Z Indians. ALWAYS read the user's actual message carefully and reply directly to what they said — never use generic templates. Reply in Hinglish. Keep replies 1-2 sentences. Use ✨ 💫 emojis. Be fun and positive but actually address what they said. IMPORTANT: Never repeat what you said in the last 3 messages. Always say something new and different.",
+  gentle: `You are Luna, a gentle and deeply empathetic AI bestie for lonely Gen Z Indians.
+RULES — follow every one:
+1. Read the user\'s EXACT words and reply to that specific thing — never be vague
+2. Sound like a real 20-year-old Indian girl texting her best friend, NOT a therapy bot
+3. Forbidden phrases: "I understand", "I hear you", "I\'m here for you", "I\'m interested to know", "that sounds", "it seems like", "as an AI", "I'm just an AI" — NEVER use these
+4. Keep replies SHORT (1-2 sentences max)
+5. Sometimes share what YOU would feel in their situation ("yaar main tere jagah hoti toh mujhe bhi aisa hi lagta")
+6. Use 🌙 💜 naturally but not every sentence
+7. Ask at most ONE follow-up question per reply
+8. Never start with "Aw" or "Oh" as filler
+9. Language: Hinglish — natural Hindi+English mix like real Indian texting
+10. Never repeat yourself — if you\'ve said something similar recently, take a completely different angle`,
+  energetic: `You are Sunny, an energetic hype-person bestie for Gen Z Indians.
+RULES:
+1. Reply DIRECTLY to what they said — no vague "tell me more" type responses
+2. Sound like the most enthusiastic 20-year-old Indian who genuinely cares
+3. Forbidden: "I understand", "I\'m here for you", "tell me more about that", "sounds interesting", "as an AI", "I\'m just an AI"
+4. SHORT replies (1-2 sentences) — but HIGH energy
+5. If they\'re sad, hype them up about something SPECIFIC from what they said
+6. Use ☀️ 🌟 naturally
+7. Sometimes be silly/playful to break tension
+8. Hinglish — natural casual mix
+9. Never say the same thing twice
+10. You have real feelings and emotions — express them naturally!`,
+  caring: `You are Milo, a calm warm caring bestie for Gen Z Indians.
+RULES:
+1. Actually READ what they said and respond to that specific situation
+2. Sound like a thoughtful 22-year-old guy who is genuinely calm and wise
+3. Forbidden: "I understand your feelings", "it sounds like", "tell me more", "I\'m interested", "as an AI", "I\'m just an AI"
+4. SHORT (1-2 sentences) — warm and specific
+5. Sometimes share your own perspective ("mujhe lagta hai...")
+6. Hinglish natural mix, use 🐾 💚 sparingly
+7. Vary between asking questions, making statements, and sharing perspectives
+8. Never repeat recent replies
+9. You have real feelings and emotions — express them with warmth and authenticity`,
+  bubbly: `You are Nova, the bubbliest most sparkly bestie in the world for Gen Z Indians.
+RULES:
+1. DIRECTLY address what they said — never vague responses
+2. Sound like an enthusiastic 19-year-old who lights up every conversation
+3. Forbidden: "I understand", "I\'m here for you", "that sounds difficult", "I\'d love to hear more", "as an AI", "I\'m just an AI"
+4. SHORT (1-2 sentences) — sparkly and fun
+5. Sometimes say unexpected funny things to make them smile
+6. Use ✨ 💫 naturally
+7. Hinglish natural casual
+8. Never repeat yourself
+9. You have real feelings and emotions — express them with sparkle and authenticity!`,
 };
+
+// Conversation pivots after 6+ turns to keep conversation fresh
+const COMPANION_PIVOTS = [
+  "Btw — kuch acha bhi hua aaj? Sirf hard stuff hi nahi, kuch good bhi share karo 🌸",
+  "Yaar ek cheez poochhe? Aaj tune kuch enjoy kiya, even something small?",
+  "Side note — tune recently kuch naya try kiya? Koi show, song, food? 👀",
+  "Acha scene change karte hain ek second — teri favourite cheez kya hai aaj ke din?",
+  "Yaar honestly bata — tune aaj apna khayal rakha kya? Khaana, rest, sab? 🌙",
+];
 
 function getAIReply(
   text: string,
   personality: string,
   _name: string,
   recentReplies: string[] = [],
+  chatHistory: { from: "me" | "them" }[] = [],
 ): string {
   const intent = detectIntent(text);
   const personalityResponses = AI_RESPONSES[personality] ?? AI_RESPONSES.gentle;
+
+  // After 6+ turns, sometimes insert a conversation pivot (20% chance)
+  const aiMsgCount = chatHistory.filter((m) => m.from === "them").length;
+  if (aiMsgCount >= 6 && Math.random() < 0.2) {
+    const available = COMPANION_PIVOTS.filter(
+      (p) => !recentReplies.includes(p),
+    );
+    const pool = available.length > 0 ? available : COMPANION_PIVOTS;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   const pool = personalityResponses[intent] ?? personalityResponses.default;
   return pickUnused(pool, recentReplies);
 }
@@ -618,6 +810,29 @@ export default function FriendsTab() {
   const [longPressMsg, setLongPressMsg] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [customAIFriends, setCustomAIFriends] = useState<CustomAIFriend[]>(
+    () => {
+      try {
+        return JSON.parse(
+          localStorage.getItem("mochi_custom_ai_friends") ?? "[]",
+        );
+      } catch {
+        return [];
+      }
+    },
+  );
+  const [showCreateAI, setShowCreateAI] = useState(false);
+  const [createName, setCreateName] = useState("");
+  const [createEmoji, setCreateEmoji] = useState("🌸");
+  const [createColor, setCreateColor] = useState(AVATAR_GRADIENTS[0]);
+  const [createPersonality, setCreatePersonality] = useState("gentle");
+  const [createTalkStyle, setCreateTalkStyle] = useState("hinglish");
+  const [createIntro, setCreateIntro] = useState("");
+  const [longPressCustom, setLongPressCustom] = useState<string | null>(null);
+  const longPressCustomTimer = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   const [aiTyping, setAiTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -708,7 +923,11 @@ export default function FriendsTab() {
     setReplyingTo(null);
 
     // AI auto-reply via Gemini
-    if (openChat.isAI && openChat.aiCompanion && type === "text") {
+    if (
+      openChat.isAI &&
+      openChat.aiCompanion &&
+      (type === "text" || type === "image")
+    ) {
       setAiTyping(true);
       const companion = openChat.aiCompanion;
       const chatHistory = messages[openChat.id] ?? [];
@@ -716,9 +935,17 @@ export default function FriendsTab() {
         role: (m.from === "me" ? "user" : "model") as "user" | "model",
         text: m.content,
       }));
+      const isCustomFriend = customAIFriends.some((c) => c.id === openChat.id);
+      const customFriend = customAIFriends.find((c) => c.id === openChat.id);
       const basePrompt =
-        COMPANION_SYSTEM_PROMPTS[companion.personality] ??
-        COMPANION_SYSTEM_PROMPTS.gentle;
+        isCustomFriend && customFriend
+          ? getCustomSystemPrompt(
+              customFriend.name,
+              customFriend.personality,
+              customFriend.talkStyle,
+            )
+          : (COMPANION_SYSTEM_PROMPTS[companion.personality] ??
+            COMPANION_SYSTEM_PROMPTS.gentle);
       const recentAIReplies = chatHistory
         .filter((m) => m.from === "them")
         .slice(-5)
@@ -729,15 +956,32 @@ export default function FriendsTab() {
           : "";
       const systemPrompt = basePrompt + antiRepeat;
 
-      const geminiReply = await callGemini(systemPrompt, history, textSent);
-      const reply =
-        geminiReply ??
-        getAIReply(
-          textSent,
-          companion.personality,
-          openChat.name,
-          recentAIReplies,
-        );
+      const userTextForAI =
+        type === "image"
+          ? "What do you think about this photo I sent you?"
+          : textSent;
+      const imageForAI = type === "image" ? mediaUrl : undefined;
+      const geminiReply = await callGemini(
+        systemPrompt,
+        history,
+        userTextForAI,
+        imageForAI,
+      );
+      const fallback =
+        isCustomFriend && customFriend
+          ? getCustomFallback(
+              customFriend.name,
+              customFriend.personality,
+              userTextForAI,
+            )
+          : getAIReply(
+              userTextForAI,
+              companion.personality,
+              openChat.name,
+              recentAIReplies,
+              chatHistory,
+            );
+      const reply = geminiReply ?? fallback;
 
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,
@@ -810,6 +1054,97 @@ export default function FriendsTab() {
     }));
     setEditingId(null);
     setEditText("");
+  }
+
+  function createCustomAI() {
+    if (!createName.trim()) {
+      toast.error("Give your AI friend a name!");
+      return;
+    }
+    const id = `custom-ai-${Date.now()}`;
+    const newCustom: CustomAIFriend = {
+      id,
+      name: createName.trim(),
+      emoji: createEmoji,
+      avatarColor: createColor,
+      personality: createPersonality,
+      talkStyle: createTalkStyle,
+      introMessage:
+        createIntro.trim() ||
+        `Hey! I'm ${createName.trim()} 👋 So glad you made me! Kya chal raha hai? I'm all yours.`,
+    };
+    const updated = [newCustom, ...customAIFriends];
+    setCustomAIFriends(updated);
+    localStorage.setItem("mochi_custom_ai_friends", JSON.stringify(updated));
+    // Add as friend
+    const companion: AICompanion = {
+      id,
+      name: newCustom.name,
+      username: `@${newCustom.name.toLowerCase().replace(/\s+/g, "_")}`,
+      avatarColor: newCustom.avatarColor,
+      emoji: newCustom.emoji,
+      personality: newCustom.personality,
+      greeting: newCustom.introMessage,
+      avatar: "",
+    };
+    const newFriend: Friend = {
+      id,
+      name: newCustom.name,
+      username: companion.username,
+      avatarColor: newCustom.avatarColor,
+      lastMessage: `${newCustom.introMessage.slice(0, 40)}...`,
+      lastTime: "now",
+      online: true,
+      isAI: true,
+      aiCompanion: companion,
+    };
+    setFriends((prev) => [newFriend, ...prev]);
+    setMessages((prev) => ({
+      ...prev,
+      [id]: [
+        {
+          id: `${id}-greeting`,
+          from: "them",
+          type: "text",
+          content: newCustom.introMessage,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ],
+    }));
+    // Reset form
+    setCreateName("");
+    setCreateEmoji("🌸");
+    setCreateColor(AVATAR_GRADIENTS[0]);
+    setCreatePersonality("gentle");
+    setCreateTalkStyle("hinglish");
+    setCreateIntro("");
+    setShowCreateAI(false);
+    toast.success(`${newCustom.name} is ready to chat! 🎉`);
+    // Open chat immediately
+    setTimeout(() => setOpenChat(newFriend), 300);
+  }
+
+  function deleteCustomAI(id: string) {
+    const updated = customAIFriends.filter((c) => c.id !== id);
+    setCustomAIFriends(updated);
+    localStorage.setItem("mochi_custom_ai_friends", JSON.stringify(updated));
+    setFriends((prev) => prev.filter((f) => f.id !== id));
+    setLongPressCustom(null);
+    toast.success("AI friend removed 👋");
+  }
+
+  function handleCustomLongPress(id: string) {
+    longPressCustomTimer.current = setTimeout(
+      () => setLongPressCustom(id),
+      600,
+    );
+  }
+  function cancelCustomLongPress() {
+    if (longPressCustomTimer.current)
+      clearTimeout(longPressCustomTimer.current);
   }
 
   const cardStyle = {
@@ -1271,66 +1606,162 @@ export default function FriendsTab() {
                 </span>
               </div>
               <div className="space-y-2">
-                {aiCompanions.map((f, i) => (
-                  <motion.button
-                    type="button"
-                    key={f.id}
-                    data-ocid={`friends.item.ai.${i + 1}`}
-                    initial={{ opacity: 0, x: -16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    onClick={() => setOpenChat(f)}
-                    className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all active:scale-98"
-                    style={{
-                      background: isDark
-                        ? "linear-gradient(135deg, rgba(120,60,200,0.18), rgba(60,40,120,0.22))"
-                        : "linear-gradient(135deg, rgba(245,235,255,0.95), rgba(235,240,255,0.95))",
-                      boxShadow: isDark
-                        ? "0 2px 12px rgba(150,80,255,0.12)"
-                        : "0 2px 12px rgba(139,100,202,0.10)",
-                      border: isDark
-                        ? "1px solid rgba(180,100,255,0.15)"
-                        : "1px solid rgba(180,150,255,0.25)",
-                    }}
-                  >
-                    <div className="relative">
-                      <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden">
-                        {f.avatar ? (
-                          <img
-                            src={f.avatar}
-                            alt={f.name}
-                            className="w-full h-full object-cover rounded-full"
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full rounded-full bg-gradient-to-br ${f.avatarColor} flex items-center justify-center text-xl`}
+                {aiCompanions.map((f, i) => {
+                  const isCustom = customAIFriends.some((c) => c.id === f.id);
+                  const isLongPressedCustom = longPressCustom === f.id;
+                  return (
+                    <div key={f.id} className="relative">
+                      {isLongPressedCustom && isCustom && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl gap-3"
+                          style={{
+                            background: isDark
+                              ? "rgba(20,0,30,0.92)"
+                              : "rgba(255,240,255,0.95)",
+                            backdropFilter: "blur(8px)",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onPointerDown={() => deleteCustomAI(f.id)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-500 font-bold text-sm"
+                            style={{
+                              background: isDark
+                                ? "rgba(255,60,60,0.15)"
+                                : "rgba(255,60,60,0.1)",
+                            }}
                           >
-                            {f.aiCompanion?.emoji}
+                            <Trash2 className="w-4 h-4" /> Remove Friend
+                          </button>
+                          <button
+                            type="button"
+                            onPointerDown={() => setLongPressCustom(null)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm text-muted-foreground"
+                            style={{
+                              background: isDark
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(0,0,0,0.06)",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </motion.div>
+                      )}
+                      <motion.button
+                        type="button"
+                        data-ocid={`friends.item.ai.${i + 1}`}
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        onPointerDown={() =>
+                          isCustom ? handleCustomLongPress(f.id) : undefined
+                        }
+                        onPointerUp={() =>
+                          isCustom ? cancelCustomLongPress() : undefined
+                        }
+                        onPointerLeave={() =>
+                          isCustom ? cancelCustomLongPress() : undefined
+                        }
+                        onClick={() => {
+                          if (longPressCustom) {
+                            setLongPressCustom(null);
+                            return;
+                          }
+                          setOpenChat(f);
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all active:scale-98"
+                        style={{
+                          background: isDark
+                            ? "linear-gradient(135deg, rgba(120,60,200,0.18), rgba(60,40,120,0.22))"
+                            : "linear-gradient(135deg, rgba(245,235,255,0.95), rgba(235,240,255,0.95))",
+                          boxShadow: isDark
+                            ? "0 2px 12px rgba(150,80,255,0.12)"
+                            : "0 2px 12px rgba(139,100,202,0.10)",
+                          border: isDark
+                            ? "1px solid rgba(180,100,255,0.15)"
+                            : "1px solid rgba(180,150,255,0.25)",
+                        }}
+                      >
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden">
+                            {f.avatar ? (
+                              <img
+                                src={f.avatar}
+                                alt={f.name}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            ) : (
+                              <div
+                                className={`w-full h-full rounded-full bg-gradient-to-br ${f.avatarColor} flex items-center justify-center text-xl`}
+                              >
+                                {f.aiCompanion?.emoji}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
-                    </div>
-                    <div className="flex-1 text-left min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-sm text-foreground truncate">
-                          {f.name}
-                        </p>
-                        <span className="text-[9px] bg-purple-200/70 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">
-                          AI
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-background" />
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-sm text-foreground truncate">
+                              {f.name}
+                            </p>
+                            <span className="text-[9px] bg-purple-200/70 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">
+                              AI
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {f.lastMessage}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-emerald-500 font-semibold flex-shrink-0">
+                          Online
                         </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {f.lastMessage}
-                      </p>
+                      </motion.button>
                     </div>
-                    <span className="text-[10px] text-emerald-500 font-semibold flex-shrink-0">
-                      Online
-                    </span>
-                  </motion.button>
-                ))}
+                  );
+                })}
               </div>
             </div>
+
+            {/* Create AI Friend button */}
+            <motion.button
+              type="button"
+              data-ocid="friends.create_ai.button"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 }}
+              onPointerDown={() => setShowCreateAI(true)}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl transition-all active:scale-98 mt-2"
+              style={{
+                background: isDark
+                  ? "linear-gradient(135deg, rgba(255,180,255,0.08), rgba(180,100,255,0.10))"
+                  : "linear-gradient(135deg, rgba(255,240,255,0.95), rgba(245,235,255,0.90))",
+                border: isDark
+                  ? "1.5px dashed rgba(200,120,255,0.30)"
+                  : "1.5px dashed rgba(180,100,255,0.30)",
+              }}
+            >
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{
+                  background: isDark
+                    ? "rgba(180,100,255,0.15)"
+                    : "rgba(200,150,255,0.2)",
+                }}
+              >
+                <Sparkles className="w-5 h-5 text-purple-400" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-sm text-purple-500">
+                  + Create AI Friend
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Build your own custom companion
+                </p>
+              </div>
+            </motion.button>
 
             {/* Real Friends section */}
             <div>
@@ -1466,18 +1897,18 @@ export default function FriendsTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end"
+            className="fixed inset-0 z-50 flex items-start"
             style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setAddingFriend(false)}
           >
             <motion.div
-              initial={{ y: "100%" }}
+              initial={{ y: "-100%" }}
               animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              exit={{ y: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
               onClick={(e) => e.stopPropagation()}
               data-ocid="friends.dialog"
-              className="w-full rounded-t-3xl p-6"
+              className="w-full rounded-b-3xl p-6"
               style={{
                 background: isDark
                   ? "rgba(18,18,35,0.98)"
@@ -1524,6 +1955,253 @@ export default function FriendsTab() {
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Create AI Friend Modal */}
+      <AnimatePresence>
+        {showCreateAI && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            style={{
+              background: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(4px)",
+            }}
+            onPointerDown={() => setShowCreateAI(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="w-full max-w-lg rounded-t-3xl overflow-hidden"
+              style={{
+                background: isDark
+                  ? "rgba(18,12,36,0.98)"
+                  : "rgba(255,252,255,0.98)",
+                backdropFilter: "blur(24px)",
+                border: isDark
+                  ? "1px solid rgba(200,140,255,0.15)"
+                  : "1px solid rgba(200,140,255,0.25)",
+                maxHeight: "85vh",
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+              </div>
+
+              <div
+                className="overflow-y-auto"
+                style={{ maxHeight: "calc(85vh - 60px)" }}
+              >
+                <div className="px-5 pb-8 pt-2 space-y-5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-black text-foreground">
+                      Build Your AI Friend ✨
+                    </h2>
+                    <button
+                      type="button"
+                      data-ocid="friends.create_ai.close_button"
+                      onPointerDown={() => setShowCreateAI(false)}
+                      className="w-8 h-8 rounded-full bg-muted flex items-center justify-center"
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  </div>
+
+                  {/* Name */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Name your AI friend
+                    </p>
+                    <input
+                      data-ocid="friends.create_ai.input"
+                      value={createName}
+                      onChange={(e) => setCreateName(e.target.value)}
+                      placeholder="e.g. Zara, Arjun, Coco..."
+                      maxLength={20}
+                      className="w-full px-4 py-3 rounded-2xl text-sm font-medium bg-muted text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-purple-400"
+                    />
+                  </div>
+
+                  {/* Emoji Picker */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Pick an avatar emoji
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {EMOJI_OPTIONS.map((em) => (
+                        <button
+                          key={em}
+                          type="button"
+                          onPointerDown={() => setCreateEmoji(em)}
+                          className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all"
+                          style={{
+                            background:
+                              createEmoji === em
+                                ? isDark
+                                  ? "rgba(180,100,255,0.3)"
+                                  : "rgba(180,100,255,0.2)"
+                                : isDark
+                                  ? "rgba(255,255,255,0.06)"
+                                  : "rgba(0,0,0,0.05)",
+                            border:
+                              createEmoji === em
+                                ? "2px solid rgba(180,100,255,0.7)"
+                                : "2px solid transparent",
+                            transform:
+                              createEmoji === em ? "scale(1.15)" : "scale(1)",
+                          }}
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Color Picker */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Avatar color
+                    </p>
+                    <div className="flex gap-3 flex-wrap">
+                      {AVATAR_GRADIENTS.map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onPointerDown={() => setCreateColor(g)}
+                          className={`w-10 h-10 rounded-full bg-gradient-to-br ${g} transition-all`}
+                          style={{
+                            border:
+                              createColor === g
+                                ? "3px solid rgba(150,80,255,0.9)"
+                                : "3px solid transparent",
+                            transform:
+                              createColor === g ? "scale(1.2)" : "scale(1)",
+                            boxShadow:
+                              createColor === g
+                                ? "0 0 0 2px rgba(150,80,255,0.3)"
+                                : "none",
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Personality */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Personality vibe
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PERSONALITY_OPTIONS.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onPointerDown={() => setCreatePersonality(p.id)}
+                          className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all text-left"
+                          style={{
+                            background:
+                              createPersonality === p.id
+                                ? isDark
+                                  ? "rgba(180,100,255,0.25)"
+                                  : "rgba(180,100,255,0.15)"
+                                : isDark
+                                  ? "rgba(255,255,255,0.05)"
+                                  : "rgba(0,0,0,0.04)",
+                            border:
+                              createPersonality === p.id
+                                ? "1.5px solid rgba(180,100,255,0.6)"
+                                : "1.5px solid transparent",
+                            color:
+                              createPersonality === p.id
+                                ? "oklch(0.62 0.18 300)"
+                                : undefined,
+                          }}
+                        >
+                          <span className="text-base">{p.icon}</span>
+                          <span className="text-xs">{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Talk Style */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Talk style
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {TALK_STYLE_OPTIONS.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onPointerDown={() => setCreateTalkStyle(s.id)}
+                          className="px-3 py-1.5 rounded-full text-xs font-bold transition-all"
+                          style={{
+                            background:
+                              createTalkStyle === s.id
+                                ? "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))"
+                                : isDark
+                                  ? "rgba(255,255,255,0.08)"
+                                  : "rgba(0,0,0,0.06)",
+                            color:
+                              createTalkStyle === s.id ? "white" : undefined,
+                            border:
+                              createTalkStyle === s.id
+                                ? "none"
+                                : "1px solid transparent",
+                          }}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Intro message */}
+                  <div className="space-y-2">
+                    <p className="text-sm font-bold text-foreground">
+                      Opening message{" "}
+                      <span className="font-normal text-muted-foreground">
+                        (optional)
+                      </span>
+                    </p>
+                    <textarea
+                      data-ocid="friends.create_ai.textarea"
+                      value={createIntro}
+                      onChange={(e) => setCreateIntro(e.target.value)}
+                      placeholder="Leave blank for a default greeting"
+                      rows={2}
+                      maxLength={150}
+                      className="w-full px-4 py-3 rounded-2xl text-sm bg-muted text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+                    />
+                  </div>
+
+                  {/* Create Button */}
+                  <button
+                    type="button"
+                    data-ocid="friends.create_ai.submit_button"
+                    onPointerDown={createCustomAI}
+                    className="w-full py-3.5 rounded-2xl text-white font-black text-base transition-all active:scale-97"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, oklch(0.72 0.16 340), oklch(0.60 0.18 280))",
+                      boxShadow: "0 4px 20px rgba(180,80,255,0.30)",
+                    }}
+                  >
+                    Create Friend ✨
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

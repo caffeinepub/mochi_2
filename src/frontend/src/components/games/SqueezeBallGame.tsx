@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { AnimatePresence, motion, useAnimation } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -113,7 +113,18 @@ export default function SqueezeBallGame({ onBack }: { onBack: () => void }) {
               : `${squeezeCount} / ${GOAL} squeezes`}
           </motion.p>
         </div>
-        <div className="w-9" />
+        <button
+          type="button"
+          data-ocid="squeezeball.secondary_button"
+          onClick={handleReset}
+          className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
+          style={{ touchAction: "manipulation" }}
+        >
+          <RefreshCw
+            className="w-5 h-5"
+            style={{ color: "oklch(0.45 0.10 280)" }}
+          />
+        </button>
       </div>
 
       {/* Stress bar */}

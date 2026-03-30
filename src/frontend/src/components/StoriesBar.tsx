@@ -1,4 +1,4 @@
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
@@ -85,7 +85,8 @@ export default function StoriesBar() {
   const [progress, setProgress] = useState(0);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [seenSheetOpen, setSeenSheetOpen] = useState(false);
-  const [userReaction, setUserReaction] = useState<Record<string, string>>({}); // storyId -> emoji
+  const [userReaction, setUserReaction] = useState<Record<string, string>>({});
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null); // storyId -> emoji
 
   // Creator state
   const [pickedImage, setPickedImage] = useState<string | null>(null);
@@ -230,39 +231,60 @@ export default function StoriesBar() {
   }
 
   function handlePostStory() {
-    // If no image and no text, post a gradient story with user initial
     const randomGradient =
       AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
 
-    const newStory: Story = {
-      id: `story-${Date.now()}`,
-      username: "You",
-      avatarInitial: "Y",
-      avatarColor: pickedImage ? "from-pink-400 to-rose-500" : randomGradient,
-      imageDataUrl: pickedImage,
-      textOverlay: overlayText.trim()
-        ? { text: overlayText.trim(), color: textColor, fontSize }
-        : null,
-      viewed: false,
-      createdAt: Date.now(),
-      reactions: {},
-      seenBy: [],
-    };
-    try {
+    if (editingStoryId) {
+      // Update existing story
       setStories((prev) => {
-        const updated = [newStory, ...prev];
-        try {
-          saveStories(updated);
-        } catch {
-          // localStorage might be full -- drop oldest stories
-          const trimmed = [newStory, ...prev.slice(0, 5)];
-          saveStories(trimmed);
-          return trimmed;
-        }
+        const updated = prev.map((s) =>
+          s.id === editingStoryId
+            ? {
+                ...s,
+                imageDataUrl: pickedImage,
+                avatarColor: pickedImage
+                  ? "from-pink-400 to-rose-500"
+                  : s.avatarColor,
+                textOverlay: overlayText.trim()
+                  ? { text: overlayText.trim(), color: textColor, fontSize }
+                  : null,
+              }
+            : s,
+        );
+        saveStories(updated);
         return updated;
       });
-    } catch (e) {
-      console.error("Story post failed", e);
+      setEditingStoryId(null);
+    } else {
+      const newStory: Story = {
+        id: `story-${Date.now()}`,
+        username: "You",
+        avatarInitial: "Y",
+        avatarColor: pickedImage ? "from-pink-400 to-rose-500" : randomGradient,
+        imageDataUrl: pickedImage,
+        textOverlay: overlayText.trim()
+          ? { text: overlayText.trim(), color: textColor, fontSize }
+          : null,
+        viewed: false,
+        createdAt: Date.now(),
+        reactions: {},
+        seenBy: [],
+      };
+      try {
+        setStories((prev) => {
+          const updated = [newStory, ...prev];
+          try {
+            saveStories(updated);
+          } catch {
+            const trimmed = [newStory, ...prev.slice(0, 5)];
+            saveStories(trimmed);
+            return trimmed;
+          }
+          return updated;
+        });
+      } catch (e) {
+        console.error("Story post failed", e);
+      }
     }
     setPickedImage(null);
     setOverlayText("");
@@ -293,7 +315,7 @@ export default function StoriesBar() {
         <button
           type="button"
           data-ocid="stories.open_modal_button"
-          onClick={() => setCreatorOpen(true)}
+          onPointerDown={() => setCreatorOpen(true)}
           className="flex flex-col items-center gap-1 flex-shrink-0"
         >
           <div className="relative">
@@ -344,7 +366,7 @@ export default function StoriesBar() {
             type="button"
             key={story.id}
             data-ocid={`stories.item.${idx + 1}`}
-            onClick={() => openStory(idx)}
+            onPointerDown={() => openStory(idx)}
             className="flex flex-col items-center gap-1 flex-shrink-0"
           >
             <div className="relative">
@@ -432,23 +454,43 @@ export default function StoriesBar() {
             <button
               type="button"
               data-ocid="stories.close_button"
-              onClick={() => setViewingIdx(null)}
+              onPointerDown={() => setViewingIdx(null)}
               className="absolute top-10 right-4 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white"
             >
               ✕
             </button>
 
-            {/* Delete button — only for own stories */}
+            {/* Edit + Delete buttons — only for own stories */}
             {viewingStory.username === "You" && (
-              <button
-                type="button"
-                data-ocid="stories.delete_button"
-                onClick={() => deleteStory(viewingStory.id)}
-                className="absolute top-10 right-14 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white"
-                title="Delete story"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  data-ocid="stories.edit_button"
+                  onPointerDown={() => {
+                    const story = viewingStory;
+                    setViewingIdx(null);
+                    setPickedImage(story.imageDataUrl);
+                    setOverlayText(story.textOverlay?.text ?? "");
+                    setTextColor(story.textOverlay?.color ?? TEXT_COLORS[0]);
+                    setFontSize(story.textOverlay?.fontSize ?? 24);
+                    setEditingStoryId(story.id);
+                    setCreatorOpen(true);
+                  }}
+                  className="absolute top-10 right-24 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white"
+                  title="Edit story"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  data-ocid="stories.delete_button"
+                  onPointerDown={() => deleteStory(viewingStory.id)}
+                  className="absolute top-10 right-14 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white"
+                  title="Delete story"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
             )}
 
             {/* Story content */}
@@ -609,17 +651,17 @@ export default function StoriesBar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-end"
+            className="fixed inset-0 z-[60] flex items-start"
             style={{ background: "rgba(0,0,0,0.5)" }}
             onClick={() => setSeenSheetOpen(false)}
           >
             <motion.div
-              initial={{ y: "100%" }}
+              initial={{ y: "-100%" }}
               animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              exit={{ y: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full rounded-t-3xl"
+              className="w-full rounded-b-3xl"
               style={{
                 background: isDark
                   ? "rgba(22,22,40,0.98)"
@@ -699,15 +741,15 @@ export default function StoriesBar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end"
+            className="fixed inset-0 z-50 flex items-start"
             style={{ background: "rgba(0,0,0,0.7)" }}
           >
             <motion.div
-              initial={{ y: "100%" }}
+              initial={{ y: "-100%" }}
               animate={{ y: 0 }}
-              exit={{ y: "100%" }}
+              exit={{ y: "-100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              className="w-full rounded-t-3xl flex flex-col"
+              className="w-full rounded-b-3xl flex flex-col"
               style={{
                 background: isDark
                   ? "rgba(18,18,35,0.98)"

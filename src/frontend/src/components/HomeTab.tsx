@@ -169,18 +169,18 @@ function CommentModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end"
+      className="fixed inset-0 z-50 flex items-start"
       style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 30 }}
+        exit={{ opacity: 0, y: -30 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
         onClick={(e) => e.stopPropagation()}
         data-ocid="comments.modal"
-        className="w-full rounded-t-3xl p-5 max-h-[75vh] flex flex-col"
+        className="w-full rounded-b-3xl p-5 max-h-[75vh] flex flex-col"
         style={{
           background: "oklch(var(--card))",
           backdropFilter: "blur(20px)",
@@ -246,7 +246,7 @@ function CommentModal({
           <button
             type="button"
             data-ocid="comments.submit_button"
-            onClick={handleAdd}
+            onPointerDown={handleAdd}
             disabled={!commentText.trim()}
             className="w-9 h-9 rounded-full flex items-center justify-center text-white disabled:opacity-40 transition-opacity"
             style={{
@@ -622,7 +622,9 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                       <button
                         type="button"
                         data-ocid={`post.item.${i + 1}.secondary_button`}
-                        onClick={() => setCommentingPost({ title: post.title })}
+                        onPointerDown={() =>
+                          setCommentingPost({ title: post.title })
+                        }
                         className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-secondary transition-colors"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -755,7 +757,7 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                         <button
                           type="button"
                           data-ocid={`post.item.${i + 1}.secondary_button`}
-                          onClick={() =>
+                          onPointerDown={() =>
                             setCommentingPost({
                               title: post.title || "Post",
                               id: post.id,
