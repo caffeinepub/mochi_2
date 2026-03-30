@@ -1,0 +1,327 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 1rem;
+    /* Light mode – Mochi warm cream + rose-lavender palette */
+    --background: 0.975 0.008 80;
+    --foreground: 0.18 0.008 285;
+    --card: 0.995 0.004 80;
+    --card-foreground: 0.18 0.008 285;
+    --popover: 0.995 0.004 80;
+    --popover-foreground: 0.18 0.008 285;
+    --primary: 0.68 0.18 5;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.62 0.16 290;
+    --secondary-foreground: 1 0 0;
+    --muted: 0.94 0.012 80;
+    --muted-foreground: 0.52 0.02 285;
+    --accent: 0.92 0.04 15;
+    --accent-foreground: 0.18 0.008 285;
+    --destructive: 0.59 0.19 25;
+    --destructive-foreground: 1 0 0;
+    --border: 0.9 0.025 285;
+    --input: 0.9 0.025 285;
+    --ring: 0.68 0.18 5;
+    --chart-1: 0.68 0.18 5;
+    --chart-2: 0.62 0.16 290;
+    --chart-3: 0.78 0.07 200;
+    --chart-4: 0.85 0.055 290;
+    --chart-5: 0.88 0.055 5;
+    --sidebar: 0.985 0 0;
+    --sidebar-foreground: 0.18 0.008 285;
+    --sidebar-primary: 0.68 0.18 5;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.94 0.012 80;
+    --sidebar-accent-foreground: 0.18 0.008 285;
+    --sidebar-border: 0.9 0.025 285;
+    --sidebar-ring: 0.68 0.18 5;
+    /* Nav glass – warm cream */
+    --nav-bg: rgba(255, 252, 248, 0.9);
+    --nav-border: rgba(255, 230, 220, 0.5);
+    --nav-shadow: 0 -4px 32px oklch(0.68 0.18 5 / 0.09), 0 -1px 0
+      rgba(255, 230, 220, 0.6);
+    --header-bg: rgba(255, 252, 248, 0.92);
+    --card-bg: rgba(255, 254, 252, 0.96);
+    --card-bg2: rgba(248, 242, 255, 0.88);
+    --glow-pink: 0 4px 20px oklch(0.68 0.18 5 / 0.4);
+    --post-btn-ring: rgba(255, 255, 255, 0.9);
+    --shadow-card: 0 2px 20px oklch(0.68 0.18 5 / 0.08), 0 1px 4px
+      oklch(0 0 0 / 0.04);
+    --gradient-hero: linear-gradient(
+      135deg,
+      oklch(0.95 0.04 5),
+      oklch(0.93 0.05 290)
+    );
+    --bg-gradient: linear-gradient(
+      160deg,
+      oklch(0.975 0.008 80) 0%,
+      oklch(0.968 0.012 290) 50%,
+      oklch(0.972 0.01 15) 100%
+    );
+  }
+
+  .dark {
+    /* Dark mode – deep indigo midnight */
+    --background: 0.1 0.04 285;
+    --foreground: 0.94 0.006 285;
+    --card: 0.14 0.05 285;
+    --card-foreground: 0.94 0.006 285;
+    --popover: 0.13 0.045 285;
+    --popover-foreground: 0.94 0.006 285;
+    --primary: 0.78 0.2 5;
+    --primary-foreground: 0.1 0.005 285;
+    --secondary: 0.72 0.18 290;
+    --secondary-foreground: 0.1 0.005 285;
+    --muted: 0.18 0.04 285;
+    --muted-foreground: 0.6 0.025 285;
+    --accent: 0.2 0.06 285;
+    --accent-foreground: 0.94 0.006 285;
+    --destructive: 0.6 0.19 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.22 0.055 285;
+    --input: 0.17 0.05 285;
+    --ring: 0.78 0.2 5;
+    --chart-1: 0.78 0.2 5;
+    --chart-2: 0.72 0.18 290;
+    --chart-3: 0.72 0.08 200;
+    --chart-4: 0.65 0.06 290;
+    --chart-5: 0.7 0.07 5;
+    --sidebar: 0.12 0.04 285;
+    --sidebar-foreground: 0.94 0.006 285;
+    --sidebar-primary: 0.78 0.2 5;
+    --sidebar-primary-foreground: 0.1 0.005 285;
+    --sidebar-accent: 0.18 0.04 285;
+    --sidebar-accent-foreground: 0.94 0.006 285;
+    --sidebar-border: 0.22 0.055 285;
+    --sidebar-ring: 0.78 0.2 5;
+    /* Nav glass – deep indigo with pink glow */
+    --nav-bg: rgba(10, 8, 25, 0.92);
+    --nav-border: rgba(255, 100, 160, 0.12);
+    --nav-shadow: 0 -4px 40px oklch(0.78 0.2 5 / 0.18), 0 -1px 0
+      rgba(255, 100, 160, 0.1);
+    --header-bg: rgba(10, 8, 25, 0.94);
+    --card-bg: rgba(18, 14, 42, 0.96);
+    --card-bg2: rgba(26, 18, 58, 0.92);
+    --glow-pink: 0 0 24px oklch(0.78 0.2 5 / 0.7), 0 0 48px
+      oklch(0.72 0.18 290 / 0.3);
+    --post-btn-ring: rgba(255, 100, 160, 0.28);
+    --shadow-card: 0 4px 32px oklch(0.78 0.2 5 / 0.12), 0 1px 8px
+      oklch(0 0 0 / 0.4);
+    --gradient-hero: linear-gradient(
+      135deg,
+      oklch(0.22 0.08 5),
+      oklch(0.18 0.07 290)
+    );
+    --bg-gradient: linear-gradient(
+      160deg,
+      oklch(0.1 0.04 285) 0%,
+      oklch(0.11 0.05 300) 50%,
+      oklch(0.105 0.04 270) 100%
+    );
+  }
+
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background: var(--bg-gradient);
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-transparent text-foreground;
+    background: transparent;
+    font-family: "Nunito", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+}
+
+/* Breathing animation for SOS */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breatheText {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.animate-breathe-text {
+  animation: breatheText 4s ease-in-out infinite;
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+.animate-pulse-ring {
+  animation: pulseRing 2s ease-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(var(--muted)) 25%,
+    oklch(var(--border)) 50%,
+    oklch(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-slide-up {
+  animation: slideUp 0.35s ease-out both;
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: var(--nav-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--nav-border);
+}
+
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid oklch(var(--border) / 0.5);
+}
+
+/* Dark mode glass-card gets a luminous border glow */
+.dark .glass-card {
+  background: oklch(var(--card) / 0.75);
+  border: 1px solid oklch(var(--primary) / 0.12);
+  box-shadow: 0 4px 24px oklch(var(--primary) / 0.08);
+}
+
+/* Frosted header for tab headers */
+.frosted-header {
+  background: var(--header-bg);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-bottom: 1px solid oklch(var(--border) / 0.4);
+}
+
+/* Elevated card with shadow */
+.card-elevated {
+  background: oklch(var(--card));
+  border: 1px solid oklch(var(--primary) / 0.1);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius);
+}
+
+.dark .card-elevated {
+  border: 1px solid oklch(var(--border));
+  box-shadow: var(--shadow-card);
+}
+
+/* No scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Story ring gradient – richer primary/secondary */
+.story-ring {
+  background: linear-gradient(
+    135deg,
+    oklch(0.78 0.2 5),
+    oklch(0.72 0.18 290),
+    oklch(0.75 0.12 200)
+  );
+  padding: 2.5px;
+  border-radius: 9999px;
+}
+.story-ring-viewed {
+  background: oklch(var(--border));
+  padding: 2.5px;
+  border-radius: 9999px;
+}
+
+/* Dark mode glow on post button */
+.dark .post-btn-glow {
+  box-shadow: var(--glow-pink), 0 0 0 4px var(--post-btn-ring);
+}
+.post-btn-glow {
+  box-shadow: var(--glow-pink), 0 0 0 4px var(--post-btn-ring);
+}
+
+/* Nav active pill pulse */
+@keyframes navpulse {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.04);
+  }
+}
+.nav-pill-active {
+  animation: navpulse 2s ease-in-out infinite;
+}
