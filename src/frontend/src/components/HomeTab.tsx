@@ -139,24 +139,28 @@ function loadLocalPosts(): LocalPost[] {
 function CommentModal({
   post,
   onClose,
+  initialComments = [],
+  onCommentAdded,
 }: {
-  post: { title: string };
+  post: { title: string; id?: number };
   onClose: () => void;
+  initialComments?: Comment[];
+  onCommentAdded?: (comment: Comment) => void;
 }) {
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [comments, setComments] = useState<Comment[]>(initialComments);
   const [commentText, setCommentText] = useState("");
+  const myProfilePhoto = localStorage.getItem("mochi_profile_photo");
 
   const handleAdd = () => {
     if (!commentText.trim()) return;
-    setComments((prev) => [
-      ...prev,
-      {
-        id: `c-${Date.now()}`,
-        name: "You",
-        avatar: "💬",
-        text: commentText.trim(),
-      },
-    ]);
+    const newComment: Comment = {
+      id: `c-${Date.now()}`,
+      name: "You",
+      avatar: "💬",
+      text: commentText.trim(),
+    };
+    setComments((prev) => [...prev, newComment]);
+    onCommentAdded?.(newComment);
     setCommentText("");
   };
 
@@ -170,10 +174,10 @@ function CommentModal({
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 30 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
         onClick={(e) => e.stopPropagation()}
         data-ocid="comments.modal"
         className="w-full rounded-t-3xl p-5 max-h-[75vh] flex flex-col"
@@ -208,8 +212,16 @@ function CommentModal({
           ) : (
             comments.map((c) => (
               <div key={c.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-base flex-shrink-0">
-                  {c.avatar}
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-base flex-shrink-0 overflow-hidden">
+                  {c.name === "You" && myProfilePhoto ? (
+                    <img
+                      src={myProfilePhoto}
+                      alt="You"
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    c.avatar
+                  )}
                 </div>
                 <div className="flex-1 bg-muted/50 rounded-2xl rounded-tl-sm px-3 py-2">
                   <p className="text-xs font-bold text-foreground/70 mb-0.5">
@@ -264,9 +276,21 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [commentingPost, setCommentingPost] = useState<{
     title: string;
+    id?: number;
   } | null>(null);
   const likePost = useLikePost();
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [likedLocalPosts, setLikedLocalPosts] = useState<Set<number>>(
+    () =>
+      new Set(
+        JSON.parse(
+          localStorage.getItem("mochi_liked_posts") || "[]",
+        ) as number[],
+      ),
+  );
+  const [localPostComments, setLocalPostComments] = useState<
+    Record<number, Comment[]>
+  >({});
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(() => {
     seedSampleNotifications();
@@ -620,9 +644,22 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                       className="card-elevated rounded-2xl p-4 mx-4 mb-3 relative group"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          Me
-                        </div>
+                        {(() => {
+                          const photo = localStorage.getItem(
+                            "mochi_profile_photo",
+                          );
+                          return photo ? (
+                            <img
+                              src={photo}
+                              alt="You"
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                              Me
+                            </div>
+                          );
+                        })()}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-sm text-foreground">
@@ -690,18 +727,44 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                       <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
                         <button
                           type="button"
-                          className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground"
+                          data-ocid={`post.item.${i + 1}.toggle`}
+                          onClick={() => {
+                            if (!likedLocalPosts.has(post.id)) {
+                              const updated = new Set([
+                                ...likedLocalPosts,
+                                post.id,
+                              ]);
+                              setLikedLocalPosts(updated);
+                              localStorage.setItem(
+                                "mochi_liked_posts",
+                                JSON.stringify([...updated]),
+                              );
+                              addNotification({
+                                type: "like",
+                                text: "You liked a post ❤️",
+                              });
+                            }
+                          }}
+                          className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${likedLocalPosts.has(post.id) ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                         >
-                          <Heart className="w-4 h-4" /> 0
+                          <Heart
+                            className={`w-4 h-4 transition-transform ${likedLocalPosts.has(post.id) ? "fill-current scale-110" : ""}`}
+                          />
+                          {likedLocalPosts.has(post.id) ? 1 : 0}
                         </button>
                         <button
                           type="button"
+                          data-ocid={`post.item.${i + 1}.secondary_button`}
                           onClick={() =>
-                            setCommentingPost({ title: post.title || "Post" })
+                            setCommentingPost({
+                              title: post.title || "Post",
+                              id: post.id,
+                            })
                           }
                           className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-secondary transition-colors"
                         >
-                          <MessageCircle className="w-4 h-4" /> 0
+                          <MessageCircle className="w-4 h-4" />
+                          {(localPostComments[post.id] ?? []).length}
                         </button>
                       </div>
                     </motion.div>
@@ -716,6 +779,26 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
           <CommentModal
             post={commentingPost}
             onClose={() => setCommentingPost(null)}
+            initialComments={
+              commentingPost.id != null
+                ? (localPostComments[commentingPost.id] ?? [])
+                : []
+            }
+            onCommentAdded={(c) => {
+              if (commentingPost.id != null) {
+                setLocalPostComments((prev) => ({
+                  ...prev,
+                  [commentingPost.id!]: [
+                    ...(prev[commentingPost.id!] ?? []),
+                    c,
+                  ],
+                }));
+                addNotification({
+                  type: "comment",
+                  text: "You commented on a post 💬",
+                });
+              }
+            }}
           />
         )}
       </AnimatePresence>

@@ -937,7 +937,22 @@ function getMentorResponse(
   return pick(contextuals);
 }
 
-// ─── MentorChat Component ─────────────────────────────────────────────────────
+// ─── MentorChat Component ──────────────────────────────────────────────────────────────────────────────
+
+function getWelcomeBackMessage(mentor: Mentor, lastUserMsg?: string): string {
+  const topicHint = lastUserMsg
+    ? ` Last time you were sharing about "${lastUserMsg.split(" ").slice(0, 5).join(" ")}..."`
+    : "";
+  if (mentor.theme === "mentalHealth")
+    return `Hey, welcome back! ${topicHint} How are you feeling today?`;
+  if (mentor.theme === "career")
+    return `Hey! Good to see you again. ${topicHint} Ready to keep working through things?`;
+  if (mentor.theme === "relationship")
+    return `Welcome back! ${topicHint} I'm here whenever you're ready to continue.`;
+  if (mentor.theme === "studies")
+    return `Hey again! ${topicHint} What's happening today?`;
+  return `Welcome back!${topicHint} What's on your mind?`;
+}
 
 function MentorChat({
   mentor,
@@ -945,7 +960,9 @@ function MentorChat({
 }: { mentor: Mentor; onBack: () => void }) {
   const storageKey = `mochi_mentor_${mentor.id}`;
   const { theme: _theme } = useTheme();
-  const [messages, setMessages] = useState<MentorMessage[]>(() => {
+
+  // Full history for context -- persisted in localStorage
+  const [allHistory, setAllHistory] = useState<MentorMessage[]>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -957,6 +974,9 @@ function MentorChat({
     }
     return [];
   });
+
+  // Display messages -- only current session
+  const [messages, setMessages] = useState<MentorMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -966,13 +986,31 @@ function MentorChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, isTyping]);
 
+  // Save allHistory whenever it changes
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(messages.slice(-80)));
+      localStorage.setItem(storageKey, JSON.stringify(allHistory.slice(-80)));
     } catch {
       /* ignore */
     }
-  }, [messages, storageKey]);
+  }, [allHistory, storageKey]);
+
+  // On mount: show welcome-back greeting if returning user
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
+  useEffect(() => {
+    if (allHistory.length > 0) {
+      const lastUserMsg = [...allHistory].reverse().find((m) => m.isOwn);
+      const welcomeText = getWelcomeBackMessage(mentor, lastUserMsg?.text);
+      setIsTyping(true);
+      const t = setTimeout(() => {
+        setMessages([
+          { id: `wb-${Date.now()}`, text: welcomeText, isOwn: false },
+        ]);
+        setIsTyping(false);
+      }, 1200);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -984,34 +1022,38 @@ function MentorChat({
       isOwn: true,
     };
     setMessages((prev) => [...prev, userMsg]);
+    setAllHistory((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
 
-    setMessages((prev) => {
-      const hist = [...prev];
-      const delay = 2000 + Math.random() * 2000;
-      setTimeout(() => {
-        const reply = getMentorResponse(mentor, trimmed, hist);
-        setMessages((p) => [
-          ...p,
-          { id: `m-${Date.now()}`, text: reply, isOwn: false },
-        ]);
-        setIsTyping(false);
-      }, delay);
-      return prev;
-    });
+    const hist = [...allHistory, userMsg];
+    const delay = 1800 + Math.random() * 1500;
+    setTimeout(() => {
+      const reply = getMentorResponse(mentor, trimmed, hist);
+      const replyMsg: MentorMessage = {
+        id: `m-${Date.now()}`,
+        text: reply,
+        isOwn: false,
+      };
+      setMessages((p) => [...p, replyMsg]);
+      setAllHistory((p) => [...p, replyMsg]);
+      setIsTyping(false);
+    }, delay);
   };
 
   const handleEditMsg = (id: string, newText: string) => {
-    setMessages((prev) =>
+    const updater = (prev: MentorMessage[]) =>
       prev.map((m) =>
         m.id === id ? { ...m, text: newText, edited: true } : m,
-      ),
-    );
+      );
+    setMessages(updater);
+    setAllHistory(updater);
   };
 
   const handleDeleteMsg = (id: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== id));
+    const updater = (prev: MentorMessage[]) => prev.filter((m) => m.id !== id);
+    setMessages(updater);
+    setAllHistory(updater);
   };
 
   return (

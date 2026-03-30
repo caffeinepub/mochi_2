@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
@@ -18,10 +18,14 @@ interface Story {
   textOverlay: StoryTextOverlay | null;
   viewed: boolean;
   createdAt: number;
+  reactions: Record<string, number>;
+  seenBy: string[];
 }
 
 const STORY_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const STORAGE_KEY = "mochi_stories";
+const REACTION_EMOJIS = ["❤️", "😂", "😮"];
+const FAKE_VIEWERS = ["luna_✨", "sunny_🌻", "milo_🌊", "nova_⭐"];
 
 const TEXT_COLORS = [
   "#ffffff",
@@ -40,13 +44,29 @@ const AVATAR_GRADIENTS = [
   "from-emerald-400 to-teal-500",
 ];
 
+function withDefaults(s: Partial<Story> & { id: string }): Story {
+  return {
+    username: "",
+    avatarInitial: "?",
+    avatarColor: AVATAR_GRADIENTS[0],
+    imageDataUrl: null,
+    textOverlay: null,
+    viewed: false,
+    createdAt: Date.now(),
+    reactions: {},
+    seenBy: [],
+    ...s,
+  };
+}
+
 function loadStoredStories(): Story[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const all = JSON.parse(raw) as Story[];
-    // Filter out expired stories (older than 24h)
-    return all.filter((s) => Date.now() - s.createdAt < STORY_TTL);
+    const all = JSON.parse(raw) as Partial<Story>[];
+    return all
+      .filter((s) => s.id && Date.now() - (s.createdAt ?? 0) < STORY_TTL)
+      .map((s) => withDefaults(s as Partial<Story> & { id: string }));
   } catch {
     return [];
   }
@@ -64,6 +84,8 @@ export default function StoriesBar() {
   const [viewingIdx, setViewingIdx] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [seenSheetOpen, setSeenSheetOpen] = useState(false);
+  const [userReaction, setUserReaction] = useState<Record<string, string>>({}); // storyId -> emoji
 
   // Creator state
   const [pickedImage, setPickedImage] = useState<string | null>(null);
@@ -116,6 +138,24 @@ export default function StoriesBar() {
     };
   }, [viewingIdx, stories.length]);
 
+  // When opening a non-own story, add a fake viewer to seenBy
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally runs only on viewingIdx change
+  useEffect(() => {
+    if (viewingIdx === null) return;
+    const story = stories[viewingIdx];
+    if (!story || story.username === "You") return;
+    // Pick a random fake viewer not already present
+    const newViewers = FAKE_VIEWERS.filter((v) => !story.seenBy.includes(v));
+    if (newViewers.length === 0) return;
+    const pick = newViewers[Math.floor(Math.random() * newViewers.length)];
+    setStories((prev) =>
+      prev.map((s) =>
+        s.id === story.id ? { ...s, seenBy: [...s.seenBy, pick] } : s,
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingIdx]);
+
   function markViewed(id: string) {
     setStories((prev) =>
       prev.map((s) => (s.id === id ? { ...s, viewed: true } : s)),
@@ -136,34 +176,94 @@ export default function StoriesBar() {
     setViewingIdx(null);
   }
 
+  function handleReact(storyId: string, emoji: string) {
+    const prev = userReaction[storyId];
+    setStories((prevStories) =>
+      prevStories.map((s) => {
+        if (s.id !== storyId) return s;
+        const r = { ...s.reactions };
+        // Remove previous reaction
+        if (prev) {
+          r[prev] = Math.max(0, (r[prev] ?? 1) - 1);
+          if (r[prev] === 0) delete r[prev];
+        }
+        // Toggle or add new
+        if (prev !== emoji) {
+          r[emoji] = (r[emoji] ?? 0) + 1;
+        }
+        return { ...s, reactions: r };
+      }),
+    );
+    setUserReaction((prev) => ({
+      ...prev,
+      [storyId]: prev[storyId] === emoji ? "" : emoji,
+    }));
+  }
+
+  function compressImage(dataUrl: string, maxDim = 800): Promise<string> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPickedImage(ev.target?.result as string);
+    reader.onload = async (ev) => {
+      const raw = ev.target?.result as string;
+      const compressed = raw.length > 500_000 ? await compressImage(raw) : raw;
+      setPickedImage(compressed);
     };
     reader.readAsDataURL(file);
   }
 
   function handlePostStory() {
+    // If no image and no text, post a gradient story with user initial
+    const randomGradient =
+      AVATAR_GRADIENTS[Math.floor(Math.random() * AVATAR_GRADIENTS.length)];
+
     const newStory: Story = {
       id: `story-${Date.now()}`,
       username: "You",
       avatarInitial: "Y",
-      avatarColor: "from-pink-400 to-rose-500",
+      avatarColor: pickedImage ? "from-pink-400 to-rose-500" : randomGradient,
       imageDataUrl: pickedImage,
       textOverlay: overlayText.trim()
         ? { text: overlayText.trim(), color: textColor, fontSize }
         : null,
       viewed: false,
       createdAt: Date.now(),
+      reactions: {},
+      seenBy: [],
     };
-    setStories((prev) => {
-      const updated = [newStory, ...prev];
-      saveStories(updated);
-      return updated;
-    });
+    try {
+      setStories((prev) => {
+        const updated = [newStory, ...prev];
+        try {
+          saveStories(updated);
+        } catch {
+          // localStorage might be full -- drop oldest stories
+          const trimmed = [newStory, ...prev.slice(0, 5)];
+          saveStories(trimmed);
+          return trimmed;
+        }
+        return updated;
+      });
+    } catch (e) {
+      console.error("Story post failed", e);
+    }
     setPickedImage(null);
     setOverlayText("");
     setTextColor(TEXT_COLORS[0]);
@@ -179,6 +279,11 @@ export default function StoriesBar() {
   }
 
   const viewingStory = viewingIdx !== null ? stories[viewingIdx] : null;
+  const myStories = stories.filter((s) => s.username === "You");
+  const totalSeenCount = myStories.reduce((acc, s) => acc + s.seenBy.length, 0);
+
+  // Gradient preview class for text-only stories
+  const previewGradient = AVATAR_GRADIENTS[0];
 
   return (
     <>
@@ -214,6 +319,19 @@ export default function StoriesBar() {
             >
               +
             </div>
+            {/* Seen count badge on Your Story */}
+            {totalSeenCount > 0 && (
+              <div
+                className="absolute -top-1 -left-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white"
+                style={{
+                  background: "rgba(0,0,0,0.6)",
+                  backdropFilter: "blur(4px)",
+                }}
+              >
+                <Eye className="w-2.5 h-2.5" />
+                {totalSeenCount}
+              </div>
+            )}
           </div>
           <span className="text-[10px] font-semibold text-muted-foreground">
             Your Story
@@ -229,20 +347,37 @@ export default function StoriesBar() {
             onClick={() => openStory(idx)}
             className="flex flex-col items-center gap-1 flex-shrink-0"
           >
-            <div className={story.viewed ? "story-ring-viewed" : "story-ring"}>
+            <div className="relative">
               <div
-                className={`w-[58px] h-[58px] rounded-full bg-gradient-to-br ${story.avatarColor} flex items-center justify-center text-white font-bold text-lg overflow-hidden`}
+                className={story.viewed ? "story-ring-viewed" : "story-ring"}
               >
-                {story.imageDataUrl ? (
-                  <img
-                    src={story.imageDataUrl}
-                    alt="story"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  story.avatarInitial
-                )}
+                <div
+                  className={`w-[58px] h-[58px] rounded-full bg-gradient-to-br ${story.avatarColor} flex items-center justify-center text-white font-bold text-lg overflow-hidden`}
+                >
+                  {story.imageDataUrl ? (
+                    <img
+                      src={story.imageDataUrl}
+                      alt="story"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    story.avatarInitial
+                  )}
+                </div>
               </div>
+              {/* Eye indicator for own stories */}
+              {story.username === "You" && story.seenBy.length > 0 && (
+                <div
+                  className="absolute -bottom-0.5 -right-0.5 flex items-center gap-0.5 px-1 py-0.5 rounded-full text-[8px] font-bold text-white"
+                  style={{
+                    background: "rgba(0,0,0,0.65)",
+                    backdropFilter: "blur(4px)",
+                  }}
+                >
+                  <Eye className="w-2 h-2" />
+                  {story.seenBy.length}
+                </div>
+              )}
             </div>
             <span className="text-[10px] font-semibold text-muted-foreground max-w-[64px] truncate">
               {story.username}
@@ -264,9 +399,10 @@ export default function StoriesBar() {
       <AnimatePresence>
         {viewingStory && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed inset-0 z-50 flex items-center justify-center"
             style={{ background: "rgba(0,0,0,0.92)" }}
           >
@@ -306,6 +442,7 @@ export default function StoriesBar() {
             {viewingStory.username === "You" && (
               <button
                 type="button"
+                data-ocid="stories.delete_button"
                 onClick={() => deleteStory(viewingStory.id)}
                 className="absolute top-10 right-14 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center text-white"
                 title="Delete story"
@@ -370,30 +507,187 @@ export default function StoriesBar() {
               aria-label="Next story"
             />
 
-            {/* Username + time */}
-            <div className="absolute bottom-12 left-4 flex items-center gap-2 z-20">
-              <div
-                className={`w-8 h-8 rounded-full bg-gradient-to-br ${viewingStory.avatarColor} flex items-center justify-center text-white text-sm font-bold`}
-              >
-                {viewingStory.avatarInitial}
-              </div>
-              <div>
-                <span className="text-white font-semibold text-sm">
-                  {viewingStory.username}
-                </span>
-                <p className="text-white/60 text-xs">
-                  {timeAgo(viewingStory.createdAt)} ago · expires in{" "}
-                  {Math.max(
-                    0,
-                    Math.floor(
-                      (STORY_TTL - (Date.now() - viewingStory.createdAt)) /
-                        3600000,
-                    ),
-                  )}
-                  h
-                </p>
+            {/* Bottom area: reactions + username + seen */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col pb-8">
+              {/* Reaction Bar */}
+              {viewingStory.username !== "You" && (
+                <div className="flex items-center justify-center gap-3 mb-3 px-4">
+                  {REACTION_EMOJIS.map((emoji) => {
+                    const count = viewingStory.reactions[emoji] ?? 0;
+                    const isActive = userReaction[viewingStory.id] === emoji;
+                    return (
+                      <motion.button
+                        key={emoji}
+                        type="button"
+                        data-ocid="stories.toggle"
+                        whileTap={{ scale: 0.88 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReact(viewingStory.id, emoji);
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all"
+                        style={{
+                          background: isActive
+                            ? "rgba(255,255,255,0.28)"
+                            : "rgba(255,255,255,0.12)",
+                          backdropFilter: "blur(12px)",
+                          border: isActive
+                            ? "1.5px solid rgba(255,255,255,0.55)"
+                            : "1.5px solid rgba(255,255,255,0.18)",
+                          boxShadow: isActive
+                            ? "0 0 12px rgba(255,180,230,0.4), 0 2px 8px rgba(0,0,0,0.2)"
+                            : "0 2px 8px rgba(0,0,0,0.15)",
+                          color: "white",
+                        }}
+                      >
+                        <span className="text-base leading-none">{emoji}</span>
+                        {count > 0 && (
+                          <span className="text-xs text-white/90">{count}</span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Username row + Seen by */}
+              <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-8 h-8 rounded-full bg-gradient-to-br ${viewingStory.avatarColor} flex items-center justify-center text-white text-sm font-bold`}
+                  >
+                    {viewingStory.avatarInitial}
+                  </div>
+                  <div>
+                    <span className="text-white font-semibold text-sm">
+                      {viewingStory.username}
+                    </span>
+                    <p className="text-white/60 text-xs">
+                      {timeAgo(viewingStory.createdAt)} ago · expires in{" "}
+                      {Math.max(
+                        0,
+                        Math.floor(
+                          (STORY_TTL - (Date.now() - viewingStory.createdAt)) /
+                            3600000,
+                        ),
+                      )}
+                      h
+                    </p>
+                  </div>
+                </div>
+
+                {/* Seen by — only for own stories */}
+                {viewingStory.username === "You" && (
+                  <button
+                    type="button"
+                    data-ocid="stories.open_modal_button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSeenSheetOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-white/80 transition-all"
+                    style={{
+                      background: "rgba(255,255,255,0.12)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                    }}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Seen by {viewingStory.seenBy.length}</span>
+                  </button>
+                )}
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Seen By Sheet */}
+      <AnimatePresence>
+        {seenSheetOpen && viewingStory && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-end"
+            style={{ background: "rgba(0,0,0,0.5)" }}
+            onClick={() => setSeenSheetOpen(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full rounded-t-3xl"
+              style={{
+                background: isDark
+                  ? "rgba(22,22,40,0.98)"
+                  : "rgba(255,255,255,0.98)",
+                backdropFilter: "blur(24px)",
+                maxHeight: "60vh",
+              }}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+              </div>
+
+              <div className="px-5 pb-2 pt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-black text-base text-foreground">
+                    Seen by {viewingStory.seenBy.length}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  data-ocid="stories.close_button"
+                  onClick={() => setSeenSheetOpen(false)}
+                  className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div
+                className="px-5 pb-8 overflow-y-auto flex flex-col gap-2 mt-1"
+                style={{
+                  maxHeight: "45vh",
+                  WebkitOverflowScrolling: "touch",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {viewingStory.seenBy.length === 0 ? (
+                  <div className="py-8 text-center">
+                    <span className="text-3xl">👁</span>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      No one has seen this yet
+                    </p>
+                  </div>
+                ) : (
+                  viewingStory.seenBy.map((viewer, i) => (
+                    <div
+                      key={viewer}
+                      data-ocid={`stories.item.${i + 1}`}
+                      className="flex items-center gap-3 py-2"
+                    >
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                        style={{
+                          background: `linear-gradient(135deg, ${["oklch(0.72 0.11 355)", "oklch(0.65 0.12 268)", "oklch(0.68 0.13 220)", "oklch(0.7 0.11 145)"][i % 4]}, ${["oklch(0.62 0.10 268)", "oklch(0.55 0.11 355)", "oklch(0.58 0.12 145)", "oklch(0.6 0.13 220)"][i % 4]})`,
+                        }}
+                      >
+                        {viewer[0].toUpperCase()}
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">
+                        {viewer}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -441,26 +735,31 @@ export default function StoriesBar() {
                 </button>
               </div>
 
-              <div className="px-5 pb-6 overflow-y-auto flex flex-col gap-4">
-                {/* Image Picker */}
-                <button
-                  type="button"
-                  className="relative w-full rounded-2xl overflow-hidden cursor-pointer text-left"
+              {/* Scrollable content — iOS-friendly */}
+              <div
+                className="px-5 pb-6 overflow-y-auto flex flex-col gap-4"
+                style={{
+                  WebkitOverflowScrolling: "touch",
+                  overscrollBehavior: "contain",
+                }}
+              >
+                {/* Image Picker — uses label+input pattern for mobile reliability */}
+                <label
+                  htmlFor="story-file-input"
+                  className="relative w-full rounded-2xl overflow-hidden cursor-pointer block"
                   style={{
                     height: 220,
-                    background: pickedImage
-                      ? undefined
-                      : isDark
-                        ? "rgba(255,255,255,0.06)"
-                        : "rgba(245,240,255,0.6)",
-                    border: pickedImage
-                      ? "none"
-                      : "2px dashed oklch(0.62 0.10 268 / 0.4)",
+                    background:
+                      pickedImage || overlayText.trim()
+                        ? undefined
+                        : isDark
+                          ? "rgba(255,255,255,0.06)"
+                          : "rgba(245,240,255,0.6)",
+                    border:
+                      pickedImage || overlayText.trim()
+                        ? "none"
+                        : "2px dashed oklch(0.62 0.10 268 / 0.4)",
                   }}
-                  onClick={() => fileInputRef.current?.click()}
-                  onKeyDown={(e) =>
-                    e.key === "Enter" && fileInputRef.current?.click()
-                  }
                 >
                   {pickedImage ? (
                     <>
@@ -482,6 +781,22 @@ export default function StoriesBar() {
                         </div>
                       )}
                     </>
+                  ) : overlayText.trim() ? (
+                    // Text-only preview with gradient background
+                    <div
+                      className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${previewGradient} rounded-2xl`}
+                    >
+                      <div
+                        className="inset-x-3 text-center font-black px-4"
+                        style={{
+                          color: textColor,
+                          fontSize: fontSize,
+                          textShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        {overlayText}
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full gap-2">
                       <span className="text-4xl">📷</span>
@@ -490,9 +805,10 @@ export default function StoriesBar() {
                       </span>
                     </div>
                   )}
-                </button>
+                </label>
                 <input
                   ref={fileInputRef}
+                  id="story-file-input"
                   type="file"
                   accept="image/*,video/*"
                   className="hidden"
@@ -556,13 +872,12 @@ export default function StoriesBar() {
                   />
                 </div>
 
-                {/* Post Button */}
+                {/* Post Button — always enabled */}
                 <button
                   type="button"
                   data-ocid="stories.submit_button"
                   onClick={handlePostStory}
-                  disabled={!pickedImage && !overlayText.trim()}
-                  className="w-full py-3.5 rounded-2xl text-white font-black text-base transition-opacity disabled:opacity-40"
+                  className="w-full py-3.5 rounded-2xl text-white font-black text-base"
                   style={{
                     background:
                       "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",

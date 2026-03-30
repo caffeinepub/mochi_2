@@ -1,6 +1,7 @@
 import { Bell, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   type Notification,
   loadNotifications,
@@ -57,7 +58,7 @@ export default function NotificationsPanel({
     saveNotifications(updated);
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -66,7 +67,7 @@ export default function NotificationsPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[9998]"
             style={{
               background: "rgba(0,0,0,0.3)",
               backdropFilter: "blur(2px)",
@@ -80,7 +81,7 @@ export default function NotificationsPanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -24 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 rounded-b-3xl overflow-hidden"
+            className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-[9999] rounded-b-3xl overflow-hidden"
             style={{
               background: "oklch(var(--card))",
               boxShadow: "0 8px 32px oklch(0 0 0 / 0.18)",
@@ -187,6 +188,7 @@ export default function NotificationsPanel({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

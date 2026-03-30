@@ -6,6 +6,8 @@ import { useAddMoodEntry } from "../hooks/useQueries";
 import BreathingGame from "./games/BreathingGame";
 import BubblePopGame from "./games/BubblePopGame";
 import MemoryGame from "./games/MemoryGame";
+import WordScrambleGame from "./games/WordScrambleGame";
+import ZenTapGame from "./games/ZenTapGame";
 
 const MOODS = [
   {
@@ -55,7 +57,13 @@ const MOTIVATIONAL = [
   "Being honest about how you feel is brave. 💪",
 ];
 
-type GameScreen = "breathing" | "bubbles" | "memory" | null;
+type GameScreen =
+  | "breathing"
+  | "bubbles"
+  | "memory"
+  | "wordscramble"
+  | "zentap"
+  | null;
 
 const GAMES = [
   {
@@ -81,6 +89,20 @@ const GAMES = [
     emoji: "🧠",
     gradient:
       "linear-gradient(135deg, oklch(0.90 0.07 60), oklch(0.86 0.07 130))",
+  },
+  {
+    id: "wordscramble" as GameScreen,
+    name: "Word Scramble",
+    emoji: "🔤",
+    desc: "Unscramble words — gets harder with levels!",
+    gradient: "linear-gradient(135deg, #a8edea, #fed6e3)",
+  },
+  {
+    id: "zentap" as GameScreen,
+    name: "Zen Tap",
+    emoji: "🎯",
+    desc: "Tap the shapes — test your focus & speed!",
+    gradient: "linear-gradient(135deg, #ffecd2, #fcb69f)",
   },
 ];
 
@@ -224,6 +246,10 @@ export default function MoodTab() {
     return <BubblePopGame onBack={() => setActiveGame(null)} />;
   if (activeGame === "memory")
     return <MemoryGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === "wordscramble")
+    return <WordScrambleGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === "zentap")
+    return <ZenTapGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="flex flex-col">
