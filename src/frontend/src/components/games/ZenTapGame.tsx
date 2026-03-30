@@ -157,6 +157,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
           data-ocid="zentap.close_button"
           onClick={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
+          style={{ touchAction: "manipulation" }}
         >
           <ArrowLeft
             className="w-5 h-5"
@@ -221,6 +222,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
                 animate={{ opacity: 1 - progress * 0.3, scale: 1 }}
                 exit={{ opacity: 0, scale: 1.3 }}
                 transition={{ duration: 0.2 }}
+                onPointerDown={() => handleTap(shape.id)}
                 onClick={() => handleTap(shape.id)}
                 style={{
                   position: "absolute",
@@ -242,6 +244,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
                   cursor: "pointer",
                   border: "none",
                   outline: "none",
+                  touchAction: "none",
                   transform:
                     shape.shape === "triangle" ? "rotate(180deg)" : undefined,
                 }}
@@ -300,6 +303,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
                   style={{
                     background:
                       "linear-gradient(135deg, oklch(0.72 0.15 355), oklch(0.70 0.14 290))",
+                    touchAction: "manipulation",
                   }}
                 >
                   {phase === "levelup" ? "Next Level →" : "Play Again 🎯"}

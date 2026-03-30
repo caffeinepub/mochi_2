@@ -48,7 +48,10 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
   const nextId = useRef(BUBBLE_COUNT);
 
   const handlePop = useCallback(
-    (e: React.MouseEvent | React.TouchEvent, bubble: Bubble) => {
+    (
+      e: React.PointerEvent | React.MouseEvent | React.TouchEvent,
+      bubble: Bubble,
+    ) => {
       if (bubble.popped || bubble.spawning) return;
       e.preventDefault();
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -119,6 +122,7 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
           data-ocid="bubble.close_button"
           onClick={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
+          style={{ touchAction: "manipulation" }}
         >
           <ArrowLeft
             className="w-5 h-5"
@@ -146,7 +150,7 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Bubbles */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" style={{ touchAction: "none" }}>
         {bubbles
           .filter((b) => !b.popped)
           .map((bubble) => (
@@ -163,6 +167,7 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
                 boxShadow:
                   "inset -4px -4px 8px oklch(1 0 0 / 0.3), inset 2px 2px 6px oklch(1 0 0 / 0.5), 0 4px 12px oklch(0 0 0 / 0.08)",
                 translateX: "-50%",
+                touchAction: "none",
               }}
               initial={{ y: "110vh", opacity: 0 }}
               animate={{
@@ -179,8 +184,8 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
                 },
                 opacity: { duration: 0.4 },
               }}
+              onPointerDown={(e) => handlePop(e, bubble)}
               onClick={(e) => handlePop(e, bubble)}
-              onTouchStart={(e) => handlePop(e, bubble)}
               whileTap={{ scale: 0.85 }}
             >
               {/* Bubble shine */}

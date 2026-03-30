@@ -298,6 +298,7 @@ export default function MoodTab() {
                 onClick={() => handleMoodSelect(mood.value)}
                 whileTap={{ scale: 0.9 }}
                 className="flex flex-col items-center gap-1 group"
+                style={{ touchAction: "manipulation" }}
               >
                 <motion.div
                   animate={{ scale: isSelected ? 1.2 : 1 }}
@@ -362,6 +363,7 @@ export default function MoodTab() {
                     background:
                       "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
                     color: "white",
+                    touchAction: "manipulation",
                   }}
                 >
                   Change
@@ -454,7 +456,10 @@ export default function MoodTab() {
             Take a breather with these calming games
           </p>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div
+          className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
+          style={{ touchAction: "pan-x" }}
+        >
           {GAMES.map((game, i) => (
             <motion.button
               key={game.id}
@@ -463,10 +468,10 @@ export default function MoodTab() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
-              onClick={() => setActiveGame(game.id)}
+              onPointerDown={() => setActiveGame(game.id)}
               whileTap={{ scale: 0.95 }}
               className="flex-shrink-0 w-36 rounded-2xl p-4 text-left shadow-card border border-white/40 hover:shadow-card-hover transition-all duration-200 active:scale-[0.97]"
-              style={{ background: game.gradient }}
+              style={{ background: game.gradient, touchAction: "manipulation" }}
             >
               <span className="text-3xl block mb-2">{game.emoji}</span>
               <p className="font-black text-sm text-foreground/90 leading-tight">
