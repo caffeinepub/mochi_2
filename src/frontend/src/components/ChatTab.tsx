@@ -19,6 +19,7 @@ import {
   useAddChatMessage,
   useGetChatMessages,
 } from "../hooks/useQueries";
+import { callGemini } from "../lib/gemini";
 import AIChat from "./AIChat";
 import FriendsTab from "./FriendsTab";
 
@@ -571,370 +572,16 @@ function ChatMessageBubble({
   );
 }
 
-const MENTOR_RESPONSES: Record<string, Record<string, string[]>> = {
-  mentalHealth: {
-    anxiety: [
-      "That makes a lot of sense. Anxiety has this way of making everything feel urgent and overwhelming at the same time. Can I ask — how long has this been going on for you?",
-      "I hear you. What you're describing sounds really exhausting — when your mind won't let you rest. One thing I often explore with people is what the anxiety is actually trying to protect you from. Have you thought about that?",
-      "You're not alone in feeling this way. I've worked with so many young adults who describe exactly what you're saying. The first thing I'd want to know — does it come in waves or is it more constant?",
-      "That takes courage to say out loud. Genuinely. A lot of people carry anxiety silently for years. What does it feel like in your body when it hits?",
-      "I want to understand this better. When you say you feel anxious — is it more like a racing heart, or more like a dread that sits in your chest? The distinction actually matters for how we work with it.",
-    ],
-    depression: [
-      "Thank you for trusting me with this. Depression is one of those things that convinces you it's just 'who you are' — but it isn't. It's something that's happening to you, not something you are. How long have you been feeling this way?",
-      "I hear you. That flatness you're describing — where nothing feels good even when it 'should' — is one of the hardest things to explain to people who haven't felt it. You don't have to justify it to me.",
-      "Can I ask — is there anything that gives you even a small moment of relief? Doesn't have to be big. Sometimes that's where we start.",
-      "You're doing something really brave by reaching out. A lot of people with depression don't — because the depression itself tells them it won't help. What made you decide to talk today?",
-      "That makes complete sense. When you've been running on empty for a while, even basic things start to feel impossible. I'd love to understand more about your day-to-day — what does a typical day look like for you right now?",
-    ],
-    general: [
-      "I'm glad you reached out. What's been weighing on you most lately?",
-      "That sounds really hard. I want to make sure I understand — can you tell me a little more about what's been going on?",
-      "You're in the right place. There's no pressure here to have it all figured out. What feels most important to talk about today?",
-      "I've been working with young adults for years, and one thing I've learned is that the things we dismiss as 'not a big deal' are often exactly what needs attention. What's on your mind?",
-    ],
-    greeting: [
-      "I'm so glad you're here. Just the act of opening this chat takes courage. How are you actually doing — not the surface answer, the real one?",
-      "Hey! Really glad you reached out to me. There's no agenda here, no rush. What's on your mind today?",
-    ],
-    lonely: [
-      "Loneliness is one of the most painful human experiences — and one of the most minimized. You're not being dramatic. When did this feeling start?",
-      "I hear you. Sometimes loneliness hits hardest even when people are around you, right? Is that what this feels like?",
-    ],
-    angry: [
-      "Anger is almost always a signal about something deeper — a boundary that got crossed, a need that went unmet. What happened?",
-      "I'm not going to tell you to calm down. Anger has something to say. What set it off?",
-    ],
-    thanks: [
-      "I'm really glad this helped, even a little. You're doing the work by showing up and talking. That matters. 💜",
-      "Of course. You deserve this support. Come back anytime.",
-    ],
-    bye: [
-      "Take care of yourself, okay? You can always come back here whenever you need. 🌸",
-      "It was really good talking with you. Remember — you're stronger than this feels right now. Bye for now 💜",
-    ],
-  },
-  career: {
-    lost: [
-      "Feeling lost about your career is more common than you'd think — and honestly, it often means you're paying attention to what actually matters to you. What did you imagine yourself doing when you were younger?",
-      "I work with a lot of people at this exact crossroads. Before we talk about what to do, I'm curious — what's the feeling underneath the confusion? Is it more like fear, or more like boredom, or something else?",
-      "Here's a question I ask everyone who comes to me feeling lost: when you imagine your ideal Monday morning, what does it look like? Not the job title — the actual feeling of the work.",
-      "That uncertainty is uncomfortable, but it's also useful information. It means the path you're on isn't quite right. Can you tell me more about what's been pulling at you?",
-    ],
-    rejection: [
-      "Three rejections in a row is genuinely demoralizing. I want you to know that doesn't mean what your brain is probably telling you it means. Job searching is brutal and largely random. How are you holding up emotionally?",
-      "Rejection stings — there's no way around that. But I want to ask something: are you getting rejected before or after interviews? That distinction tells us a lot about what to work on.",
-      "I hear the discouragement in what you're saying. Can I ask — what kind of roles have you been applying to? Sometimes the issue isn't you at all, it's a mismatch between the role and how you're presenting yourself.",
-      "The hardest part of job searching is that rejection feels personal even when it almost never is. What's your gut feeling about where things are breaking down?",
-    ],
-    toxic: [
-      "A toxic work environment takes a real toll — on your mood, your health, your sense of self. I don't take that lightly. How long have you been in this situation?",
-      "This is one of the most common things I hear. People stay in difficult workplaces for all kinds of reasons — financial, fear of starting over, hoping it'll get better. What's making it hard to leave?",
-      "Before I give any advice, I want to understand — when you say toxic, can you describe what that actually looks like day to day? Everyone's situation is different.",
-    ],
-    general: [
-      "I'm glad you reached out. Career questions can feel so isolating — like you should just know what to do. What's on your mind?",
-      "There's no wrong place to start. Tell me what's going on with work right now and we'll figure out where to focus.",
-      "I've helped a lot of people navigate exactly this kind of uncertainty. What feels most stuck for you right now?",
-    ],
-    greeting: [
-      "Hey! Great to see you here. Career stuff can feel so isolating — like you're supposed to have it all figured out. What's going on?",
-      "Yo! I'm Arjun. No fluff, no generic advice — let's actually dig into what's happening with your career. What's the situation?",
-    ],
-    lonely: [
-      "Feeling isolated in your career journey is super common, especially in your 20s. Everyone else looks like they have it together. What does your situation look like right now?",
-    ],
-    thanks: [
-      "Hey, that's all you — I just asked the right questions. Keep that momentum going 💼",
-      "Anytime! You've got this. Come back whenever you need to think something through.",
-    ],
-    bye: [
-      "Go get it! And remember — progress over perfection. Catch you next time 🚀",
-      "Alright! Keep moving forward. You know where to find me.",
-    ],
-  },
-  relationship: {
-    breakup: [
-      "Breakups are one of the most disorienting experiences a person can go through — even when you knew it was coming. How recent is this, and how are you sleeping?",
-      "I hear you. There's this strange grief that comes with losing someone who's still alive, still existing, just no longer yours. That's real and it deserves to be taken seriously. What's been the hardest part?",
-      "One thing I often see is people rushing to 'get over it' before they've actually processed what happened. Can I ask — do you understand why it ended? Not just the reason given, but what you actually think?",
-      "The urge to check their social media, to replay conversations — that's your brain trying to make sense of something that doesn't quite make sense yet. How long has it been since the breakup?",
-    ],
-    conflict: [
-      "Conflict in close relationships is almost always about something underneath the surface issue. What's the thing you two keep fighting about?",
-      "I want to understand both sides here. When the argument happens — what do you feel like you need from them that you're not getting?",
-      "Communication patterns in relationships are so much easier to see from the outside. Tell me what a typical argument looks like — who says what, how it starts, how it ends.",
-    ],
-    family: [
-      "Family dynamics are some of the most complex work I do. The history runs so deep. What's the relationship been like, and what specifically has been hard lately?",
-      "There's something uniquely painful about conflict with family — because they're people we love and also people who know exactly how to hurt us. What's going on?",
-      "I hear you. Can I ask — is this a new tension, or something that's always been there and is just getting harder to ignore?",
-    ],
-    general: [
-      "Relationships bring up so much, don't they? I'm here. Tell me what's going on.",
-      "There's no judgment here — whatever the situation is. What would you like to talk through?",
-      "I've worked with people across every kind of relationship challenge. What's weighing on you?",
-    ],
-    greeting: [
-      "Hi! I'm really glad you reached out. Relationships — of any kind — can be so complicated. What's been going on?",
-      "Hey, welcome. This is a judgment-free zone. Whatever you're navigating, we'll work through it together. What's on your heart?",
-    ],
-    lonely: [
-      "Loneliness inside a relationship, or loneliness without one — both are real and both hurt. Which resonates more with what you're feeling?",
-      "That ache of feeling unseen or disconnected — I know it well from the people I work with. Tell me more about what's been happening.",
-    ],
-    angry: [
-      "Anger in relationships is usually about hurt underneath. Something didn't feel fair or safe. What happened between you two?",
-      "I hear the frustration. Before we talk about what to do, I want to understand — what exactly made you feel this way?",
-    ],
-    thanks: [
-      "You did the hard part by opening up. I'm just here to listen 💕",
-      "Anytime. Relationships are worth the work, and so are you.",
-    ],
-    bye: [
-      "Take care of yourself first, okay? 💕 Come back whenever you need.",
-      "Wishing you peace. You're not alone in this.",
-    ],
-  },
-  studies: {
-    pressure: [
-      "The pressure you're describing — that constant feeling that you're behind, that you're not enough — that's one of the most common things I hear from students. When did you start feeling this way?",
-      "Academic pressure is real, and it's worth taking seriously. Can I ask — where is the pressure coming from? Is it internal, from parents, from comparing yourself to others — or all three?",
-      "I want you to hear this: your worth is not your GPA. I know that sounds like a poster on a wall, but I mean it clinically. What does it feel like when you imagine not achieving the grades you're aiming for?",
-      "Perfectionism in students often looks like motivation from the outside, but from the inside it feels like constant failure. Does that resonate at all?",
-    ],
-    burnout: [
-      "Burnout is a real physiological state — it's not laziness, and you can't willpower your way out of it. How long have you been pushing through? When was the last time you actually rested?",
-      "What you're describing sounds like your mind and body have hit a wall. That 'staring at the page for an hour' feeling — that's not a focus problem, that's a depletion problem. What does your sleep look like?",
-      "I hear exhaustion in what you're saying. Before we talk about strategies, I want to ask — what are you trying to achieve, and is it actually what you want, or what someone else wants for you?",
-    ],
-    general: [
-      "School can be genuinely overwhelming, and not enough people acknowledge that. What's going on?",
-      "I'm here to help you think through this without judgment. What's been the hardest thing lately?",
-      "Tell me what's been happening — both academically and how you've been feeling about it all.",
-    ],
-    greeting: [
-      "Hey! Okay so tell me what's going on — exams, assignments, burnout, all of the above? Let's figure this out together 📚",
-      "Hey there! Academic stress is super real and way too normalized. What's been happening?",
-    ],
-    lonely: [
-      "Studying can be so isolating, especially when it feels like everyone else gets it and you don't. Is that kind of what's happening?",
-    ],
-    angry: [
-      "Academic frustration is so valid — especially when you're working hard and it feels like it's not paying off. What's going on?",
-    ],
-    thanks: [
-      "You've got this! 📚 Come back if you need to think anything through.",
-      "Happy to help! Keep going — you're more capable than your stress is telling you.",
-    ],
-    bye: [
-      "Good luck with everything! You've totally got this. 📚✨",
-      "Take a break if you need one — rest is part of studying. See you!",
-    ],
-  },
-};
-
-function getMentorResponse(
-  mentor: Mentor,
-  userMessage: string,
-  history: MentorMessage[],
-): string {
-  const msg = userMessage.toLowerCase();
-  const pool = MENTOR_RESPONSES[mentor.theme] ?? MENTOR_RESPONSES.mentalHealth;
-  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
-
-  // Check history length for follow-up context
-  const userTurns = history.filter((m) => m.isOwn).length;
-
-  if (userTurns === 0) {
-    // First message — mentor-specific opening
-    if (mentor.theme === "mentalHealth")
-      return `Hi, I'm Dr. ${mentor.firstName} 🌸 I'm a therapist and I'm really glad you reached out. This is your space — no pressure, no judgment. What's been weighing on you?`;
-    if (mentor.theme === "career")
-      return `Hey! I'm ${mentor.firstName}, your career coach 💼 Stoked you're here. Let's get straight to it — what's going on with work/career right now?`;
-    if (mentor.theme === "relationship")
-      return `Hi, I'm ${mentor.firstName} 💕 I specialize in relationships and I'm here to listen. No judgment at all. What's going on?`;
-    if (mentor.theme === "studies")
-      return `Hey there! I'm ${mentor.firstName}, study coach 📚 Let's figure out what's going on with your academics. What's the situation?`;
-    return `Hi! I'm really glad you reached out. Tell me what's been going on.`;
-  }
-
-  // Mentor-specific routing for common topics
-  if (/feel|feeling|felt|mahsoos|lag raha|lag rahi/.test(msg)) {
-    if (mentor.theme === "mentalHealth")
-      return pick([
-        "I want to sit with that for a moment. Feelings are data — they're trying to tell you something. Can you describe it a bit more? Is it more physical, or more like a mental weight?",
-        "That's really worth exploring in depth. How long have you been experiencing this? Any patterns around when it gets worse?",
-        "Acknowledging what you're feeling takes courage. What does this emotion feel like in your body when it hits hardest?",
-      ]);
-    if (mentor.theme === "career")
-      return pick([
-        "Interesting — our emotions about work are often the clearest signal about what's actually wrong. What's the feeling telling you?",
-        "That feeling is useful data! What specific situation at work triggered it most recently?",
-        "Okay, let's use that as our starting point. What would it feel like if this work situation were actually resolved?",
-      ]);
-    if (mentor.theme === "relationship")
-      return pick([
-        "Feelings in relationships are so layered. I want to understand — is this feeling about what happened, or about what it means for the relationship overall?",
-        "That's worth really exploring. What do you think you need right now that you're not getting?",
-        "I hear you. Sometimes our feelings tell us what we need before our mind catches up. What does your gut say about this situation?",
-      ]);
-    if (mentor.theme === "studies")
-      return pick([
-        "Okay, let's diagnose this properly! Is this feeling more about the work itself or about the pressure around it?",
-        "That feeling is valid — but let's also make it actionable. On a scale of 1-10, how overwhelmed are you feeling right now with studies?",
-        "Got it! Feelings about studying are usually pointing to something specific — is it one subject, or everything at once?",
-      ]);
-  }
-
-  // Mentor-specific help/confusion responses
-  if (
-    /help|support|dont know|don't know|pata nahi|samajh nahi|kya karun|what should I|what do I/.test(
-      msg,
-    )
-  ) {
-    if (mentor.theme === "mentalHealth")
-      return pick([
-        "That's exactly what I'm here for — no pressure to have it figured out. What's the heaviest thing right now? Let's start there.",
-        "You reached out — that's already the hardest part. Tell me what's going on and we'll work through it together.",
-        "I've helped many people through exactly this kind of uncertainty. There's no wrong place to start. What's on your mind?",
-      ]);
-    if (mentor.theme === "career")
-      return pick([
-        "Perfect — that's why I'm here! Let's get strategic. First: what's your actual goal? Job change, first job, promotion, or something else entirely?",
-        "Okay! Love the fact you're reaching out. Career confusion is solvable — we just need to break it down. What's your current situation?",
-        "Let's figure this out together! Tell me where you are right now career-wise and what feels most unclear.",
-      ]);
-    if (mentor.theme === "relationship")
-      return pick([
-        "Relationships are complex — there's rarely one right answer, and that's okay. Tell me what's going on and we'll think through it together.",
-        "I'm here. No judgment, no pressure. What situation are you trying to navigate?",
-        "That uncertainty in relationships is so real. Tell me what's happening — from the beginning if you'd like.",
-      ]);
-    if (mentor.theme === "studies")
-      return pick([
-        "Alright, study coach mode activated! 📚 What's the specific challenge — exam prep, time management, motivation, or something else?",
-        "Let's build a plan! First tell me: what subject or task feels most overwhelming right now?",
-        "Good instinct reaching out! Tell me about your current study situation and we'll identify what to fix first.",
-      ]);
-  }
-
-  // Mentor-specific stress/overwhelm responses
-  if (
-    /stress|overwhelm|too much|bohot|bahut|cant take|can't take|breakdown/.test(
-      msg,
-    )
-  ) {
-    if (mentor.theme === "mentalHealth")
-      return pick([
-        "Stress that feels this overwhelming is often a sign our nervous system is in overdrive — not weakness. How long has it been building? Has there been any relief at all?",
-        "I want you to hear this: what you're feeling is a valid response to real pressure. Our bodies weren't designed for constant stress. What does it feel like physically right now?",
-        "Before we talk about solutions, I want to understand what you're carrying. What's the source of the heaviest stress?",
-      ]);
-    if (mentor.theme === "career")
-      return pick([
-        "Work stress is one of the most common issues I see — and one of the most fixable once we identify the root cause. Is it workload, your boss, lack of direction, or something else?",
-        "Okay, let's triage this! What's the single thing causing the most stress at work right now? Let's start there and build a game plan.",
-        "Career stress usually comes from one of three things: too much work, wrong work, or toxic environment. Which resonates most?",
-      ]);
-    if (mentor.theme === "relationship")
-      return pick([
-        "Relationship stress is exhausting in a way that's hard to explain to people not in it. How long has this tension been building?",
-        "When relationships stress us out this much, it's worth asking — what's the core issue underneath all the stress? What are you actually fighting for or against?",
-        "I hear that you're at a breaking point. Let's slow down. What would 'relief' actually look like in this situation?",
-      ]);
-    if (mentor.theme === "studies")
-      return pick([
-        "Academic overwhelm is super real and super solvable! But first — are you sleeping? Eating? Because burnout has physical components too.",
-        "Okay let's get practical! When you say too much — what specifically? Exams, assignments, concepts you don't understand? Break it down for me.",
-        "I've seen students come back from way worse than this! 💪 Tell me exactly what's piling up so we can prioritize together.",
-      ]);
-  }
-
-  // Topic detection per mentor
-  if (mentor.theme === "mentalHealth") {
-    if (/anxi|panic|stress|scared|nervous|worry|tension/.test(msg))
-      return pick(pool.anxiety ?? pool.general);
-    if (/depress|sad|empty|numb|hopeless|worthless|cry|nothing|flat/.test(msg))
-      return pick(pool.depression ?? pool.general);
-  }
-  if (mentor.theme === "career") {
-    if (/lost|confused|don.t know|no idea|what career|what to do/.test(msg))
-      return pick(pool.lost ?? pool.general);
-    if (/reject|interview|applied|no response|ghosted/.test(msg))
-      return pick(pool.rejection ?? pool.general);
-    if (/toxic|boss|quit|leave|hostile|burnout|overwork/.test(msg))
-      return pick(pool.toxic ?? pool.general);
-  }
-  if (mentor.theme === "relationship") {
-    if (/breakup|broke up|ex|ended|over|left me|dumped/.test(msg))
-      return pick(pool.breakup ?? pool.general);
-    if (/fight|argument|conflict|argue|yell|disagree/.test(msg))
-      return pick(pool.conflict ?? pool.general);
-    if (/family|parent|mom|dad|sibling|brother|sister|home/.test(msg))
-      return pick(pool.family ?? pool.general);
-  }
-  if (mentor.theme === "studies") {
-    if (
-      /pressure|expectation|grade|marks|fail|perform|parents expect/.test(msg)
-    )
-      return pick(pool.pressure ?? pool.general);
-    if (/burnout|tired|exhaust|can.t focus|staring|blank|drained/.test(msg))
-      return pick(pool.burnout ?? pool.general);
-  }
-
-  // Greeting detection
-  if (
-    /^(hi|hello|hey|hii|helo|namaste|hola|sup|yo|heya)[\s!.]*$/.test(msg.trim())
-  ) {
-    return pick(pool.greeting ?? pool.general);
-  }
-
-  // Thanks detection
-  if (/thank|shukriya|dhanyavad|tysm/.test(msg)) {
-    return pick(pool.thanks ?? ["Of course! I'm always here for you. 💜"]);
-  }
-
-  // Goodbye detection
-  if (/bye|alvida|goodbye|ttyl|gtg|see ya|take care|cya/.test(msg)) {
-    return pick(pool.bye ?? ["Take care! Come back whenever you need. 🌸"]);
-  }
-
-  // Loneliness detection
-  if (/lonely|akela|alone|no one|nobody|isolated|no friends/.test(msg)) {
-    return pick(pool.lonely ?? pool.general);
-  }
-
-  // Anger detection
-  if (/angry|gussa|frustrated|irritated|mad|furious|rage|pissed/.test(msg)) {
-    return pick(pool.angry ?? pool.general);
-  }
-
-  // Sadness detection
-  if (/sad|dukhi|rona|cry|udaas|hurt|dard|upset|heartbroken/.test(msg)) {
-    if (mentor.theme === "mentalHealth")
-      return pick(pool.depression ?? pool.general);
-    return pick(pool.general);
-  }
-
-  // Fallback contextual responses — context-aware after 3+ turns
-  const contextuals =
-    userTurns >= 3
-      ? [
-          "I'm still with you. What else has been on your mind lately?",
-          "You've shared a lot with me today — I want to make sure we're covering what matters most to you. What hasn't come up yet?",
-          "Given everything you've told me, what would feel most useful to focus on right now?",
-          "I hear you. You've been really open with me and I don't take that lightly. What's sitting heaviest right now?",
-        ]
-      : [
-          "I appreciate you sharing that. Can you tell me a little more — what does this feel like for you on a day-to-day level?",
-          "That's really important context. I want to make sure I'm understanding you correctly — when you say that, what do you mean exactly?",
-          "I hear you. What you're going through sounds genuinely hard. What would feel most helpful to you right now — to just be heard, or to think through some next steps?",
-          "Something you said is staying with me. Can I ask a follow-up — how long have you been carrying this?",
-          "You're being really open with me, and I don't take that lightly. What's the thing you haven't been able to say to anyone else about this?",
-          "That makes a lot of sense given what you've shared. What would you say is the emotion underneath all of this — if you had to name just one?",
-        ];
-  return pick(contextuals);
+function getMentorSystemPrompt(mentor: Mentor): string {
+  if (mentor.theme === "mentalHealth")
+    return "You are Dr. Priya, a warm and empathetic therapist. You specialize in mental health, anxiety, depression, and emotional wellness for young adults. You respond in a caring, non-judgmental way. Ask follow-up questions to understand the user better. Keep responses to 2-4 sentences. Never give generic advice — always respond specifically to what the user said. You sometimes mix in light Hinglish phrases naturally.";
+  if (mentor.theme === "career")
+    return "You are Arjun, an energetic career coach for young adults. You give practical, no-nonsense career advice on job hunting, workplace issues, career confusion, and professional growth. Keep responses to 2-4 sentences. Always respond specifically to what the user says — give real, actionable advice. You sometimes mix in light Hinglish phrases naturally.";
+  if (mentor.theme === "relationship")
+    return "You are Sarah, a compassionate relationship counselor. You help young adults navigate romantic relationships, friendships, family dynamics, and communication challenges. Keep responses to 2-4 sentences. Be warm and empathetic, ask follow-up questions. Always respond specifically to what the user said.";
+  if (mentor.theme === "studies")
+    return "You are Rohan, a relatable and practical study coach. You help students with academic stress, exam prep, time management, and study strategies. Keep responses energetic and motivating, 2-4 sentences. Give specific, practical advice based on exactly what the user says. You sometimes mix in light Hinglish naturally.";
+  return "You are a warm, empathetic counselor. Respond thoughtfully and specifically to what the user says. Keep responses to 2-4 sentences.";
 }
 
 // ─── MentorChat Component ──────────────────────────────────────────────────────────────────────────────
@@ -1012,7 +659,7 @@ function MentorChat({
     }
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || isTyping) return;
 
@@ -1027,18 +674,31 @@ function MentorChat({
     setIsTyping(true);
 
     const hist = [...allHistory, userMsg];
-    const delay = 1800 + Math.random() * 1500;
-    setTimeout(() => {
-      const reply = getMentorResponse(mentor, trimmed, hist);
-      const replyMsg: MentorMessage = {
-        id: `m-${Date.now()}`,
-        text: reply,
-        isOwn: false,
-      };
-      setMessages((p) => [...p, replyMsg]);
-      setAllHistory((p) => [...p, replyMsg]);
-      setIsTyping(false);
-    }, delay);
+    const history = hist.slice(-10).map((m) => ({
+      role: (m.isOwn ? "user" : "model") as "user" | "model",
+      text: m.text,
+    }));
+    const systemPrompt = getMentorSystemPrompt(mentor);
+
+    const reply = await callGemini(systemPrompt, history, trimmed);
+    const fallbacks: Record<string, string> = {
+      mentalHealth: "I'm here for you. Tell me more about what's going on 💜",
+      career:
+        "I'm listening! Tell me more about what's happening with your career 💼",
+      relationship:
+        "I'm here with you. What else can you share about the situation? 💕",
+      studies: "I got you! Tell me more about what's going on academically 📚",
+    };
+    const replyText =
+      reply ?? fallbacks[mentor.theme] ?? "I'm here for you. Tell me more 💜";
+    const replyMsg: MentorMessage = {
+      id: `m-${Date.now()}`,
+      text: replyText,
+      isOwn: false,
+    };
+    setMessages((p) => [...p, replyMsg]);
+    setAllHistory((p) => [...p, replyMsg]);
+    setIsTyping(false);
   };
 
   const handleEditMsg = (id: string, newText: string) => {

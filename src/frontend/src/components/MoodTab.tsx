@@ -5,7 +5,10 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAddMoodEntry } from "../hooks/useQueries";
 import BreathingGame from "./games/BreathingGame";
 import BubblePopGame from "./games/BubblePopGame";
+import ColorFloodGame from "./games/ColorFloodGame";
 import MemoryGame from "./games/MemoryGame";
+import NumberOrderGame from "./games/NumberOrderGame";
+import SqueezeBallGame from "./games/SqueezeBallGame";
 import WordScrambleGame from "./games/WordScrambleGame";
 import ZenTapGame from "./games/ZenTapGame";
 
@@ -63,6 +66,9 @@ type GameScreen =
   | "memory"
   | "wordscramble"
   | "zentap"
+  | "squeezeball"
+  | "numberorder"
+  | "colorflood"
   | null;
 
 const GAMES = [
@@ -103,6 +109,29 @@ const GAMES = [
     emoji: "🎯",
     desc: "Tap the shapes — test your focus & speed!",
     gradient: "linear-gradient(135deg, #ffecd2, #fcb69f)",
+  },
+  {
+    id: "squeezeball" as GameScreen,
+    name: "Squeeze Ball",
+    emoji: "🔴",
+    desc: "Squeeze away the stress!",
+    gradient: "linear-gradient(135deg, #fbc2eb, #a6c1ee)",
+  },
+  {
+    id: "numberorder" as GameScreen,
+    name: "Number Rush",
+    emoji: "🔢",
+    desc: "Tap 1 to 25 in order!",
+    gradient:
+      "linear-gradient(135deg, oklch(0.90 0.07 130), oklch(0.86 0.07 200))",
+  },
+  {
+    id: "colorflood" as GameScreen,
+    name: "Color Flood",
+    emoji: "🎨",
+    desc: "Flood the board with one color!",
+    gradient:
+      "linear-gradient(135deg, oklch(0.90 0.08 60), oklch(0.86 0.07 355))",
   },
 ];
 
@@ -250,6 +279,12 @@ export default function MoodTab() {
     return <WordScrambleGame onBack={() => setActiveGame(null)} />;
   if (activeGame === "zentap")
     return <ZenTapGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === "squeezeball")
+    return <SqueezeBallGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === "numberorder")
+    return <NumberOrderGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === "colorflood")
+    return <ColorFloodGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="flex flex-col">
@@ -302,16 +337,22 @@ export default function MoodTab() {
               >
                 <motion.div
                   animate={{ scale: isSelected ? 1.2 : 1 }}
-                  className={`text-3xl transition-all duration-200 ${isSelected ? "" : "opacity-70 group-hover:opacity-100"}`}
+                  className={`text-3xl transition-all duration-200 ${
+                    isSelected ? "" : "opacity-70 group-hover:opacity-100"
+                  }`}
                 >
                   {mood.emoji}
                 </motion.div>
                 <div
-                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${isSelected ? "ring-2 ring-offset-2" : "opacity-40"}`}
+                  className={`w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+                    isSelected ? "ring-2 ring-offset-2" : "opacity-40"
+                  }`}
                   style={{ background: mood.barColor }}
                 />
                 <span
-                  className={`text-[10px] font-bold ${isSelected ? "text-foreground" : "text-muted-foreground"}`}
+                  className={`text-[10px] font-bold ${
+                    isSelected ? "text-foreground" : "text-muted-foreground"
+                  }`}
                 >
                   {mood.label}
                 </span>
@@ -414,7 +455,9 @@ export default function MoodTab() {
                   />
                 </div>
                 <span
-                  className={`text-[10px] font-bold ${day.isToday ? "text-primary" : "text-muted-foreground"}`}
+                  className={`text-[10px] font-bold ${
+                    day.isToday ? "text-primary" : "text-muted-foreground"
+                  }`}
                 >
                   {day.day}
                 </span>

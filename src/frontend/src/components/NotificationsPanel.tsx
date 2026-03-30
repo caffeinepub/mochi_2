@@ -67,25 +67,36 @@ export default function NotificationsPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998]"
             style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9998,
               background: "rgba(0,0,0,0.3)",
               backdropFilter: "blur(2px)",
             }}
             onClick={onClose}
           />
-          {/* Panel slides in from top */}
+          {/* Panel slides in from top — full width on mobile */}
           <motion.div
             data-ocid="notifications.panel"
             initial={{ opacity: 0, y: -24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -24 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-[9999] rounded-b-3xl overflow-hidden"
             style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 9999,
+              width: "100%",
+              maxWidth: "430px",
+              margin: "0 auto",
               background: "oklch(var(--card))",
               boxShadow: "0 8px 32px oklch(0 0 0 / 0.18)",
               maxHeight: "70vh",
+              borderRadius: "0 0 1.5rem 1.5rem",
+              overflow: "hidden",
             }}
           >
             {/* Header */}

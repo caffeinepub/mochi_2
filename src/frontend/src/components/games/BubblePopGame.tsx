@@ -15,25 +15,27 @@ interface Bubble {
   id: number;
   x: number;
   size: number;
-  speed: number;
-  colorIndex: number;
+  duration: number;
   delay: number;
-  popped: boolean;
-  spawning: boolean;
+  colorIndex: number;
+}
+
+interface BurstParticle {
+  id: number;
+  x: number;
+  y: number;
 }
 
 const BUBBLE_COUNT = 14;
 
-function makeBubble(id: number, fromBottom = false): Bubble {
+function makeBubble(id: number, fresh = false): Bubble {
   return {
     id,
     x: 5 + Math.random() * 85,
-    size: 38 + Math.random() * 46,
-    speed: 14 + Math.random() * 14,
+    size: 40 + Math.random() * 40,
+    duration: 12 + Math.random() * 10,
+    delay: fresh ? 0 : Math.random() * -20,
     colorIndex: Math.floor(Math.random() * BUBBLE_COLORS.length),
-    delay: fromBottom ? 0 : Math.random() * -20,
-    popped: false,
-    spawning: false,
   };
 }
 
@@ -41,200 +43,195 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
   const [bubbles, setBubbles] = useState<Bubble[]>(() =>
     Array.from({ length: BUBBLE_COUNT }, (_, i) => makeBubble(i)),
   );
-  const [popped, setPopped] = useState(0);
-  const [bursting, setBursting] = useState<
-    { id: number; x: number; y: number }[]
-  >([]);
+  const [poppedIds, setPoppedIds] = useState<Set<number>>(new Set());
+  const [bursts, setBursts] = useState<BurstParticle[]>([]);
+  const [count, setCount] = useState(0);
   const nextId = useRef(BUBBLE_COUNT);
 
+  // Inject CSS keyframes once
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.id = "bubble-float-keyframes";
+    style.textContent = `
+      @keyframes bubbleFloat {
+        0%   { transform: translateY(0) scale(1); opacity: 0.9; }
+        10%  { opacity: 1; }
+        90%  { opacity: 0.85; }
+        100% { transform: translateY(-120vh) scale(0.85); opacity: 0; }
+      }
+    `;
+    if (!document.getElementById("bubble-float-keyframes")) {
+      document.head.appendChild(style);
+    }
+    return () => {
+      const el = document.getElementById("bubble-float-keyframes");
+      if (el) el.remove();
+    };
+  }, []);
+
   const handlePop = useCallback(
-    (
-      e: React.PointerEvent | React.MouseEvent | React.TouchEvent,
-      bubble: Bubble,
-    ) => {
-      if (bubble.popped || bubble.spawning) return;
+    (e: React.PointerEvent, bubble: Bubble) => {
+      if (poppedIds.has(bubble.id)) return;
+      e.stopPropagation();
       e.preventDefault();
+
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setBursting((prev) => [
+      const burstId = bubble.id;
+      setBursts((prev) => [
         ...prev,
         {
-          id: bubble.id,
+          id: burstId,
           x: rect.left + rect.width / 2,
           y: rect.top + rect.height / 2,
         },
       ]);
-      setBubbles((prev) =>
-        prev.map((b) => (b.id === bubble.id ? { ...b, popped: true } : b)),
-      );
-      setPopped((p) => p + 1);
+      setPoppedIds((prev) => new Set(prev).add(bubble.id));
+      setCount((c) => c + 1);
 
-      // Respawn after delay
+      // Remove burst after animation
+      setTimeout(() => {
+        setBursts((prev) => prev.filter((b) => b.id !== burstId));
+      }, 500);
+
+      // Spawn new bubble from bottom after delay
       setTimeout(() => {
         const newId = nextId.current++;
+        const newBubble = makeBubble(newId, true);
         setBubbles((prev) => [
           ...prev.filter((b) => b.id !== bubble.id),
-          { ...makeBubble(newId, true), spawning: true },
+          newBubble,
         ]);
-        setTimeout(() => {
-          setBubbles((prev) =>
-            prev.map((b) => (b.id === newId ? { ...b, spawning: false } : b)),
-          );
-        }, 300);
-      }, 1200);
-
-      setTimeout(() => {
-        setBursting((prev) => prev.filter((b) => b.id !== bubble.id));
-      }, 500);
+        setPoppedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(bubble.id);
+          return next;
+        });
+      }, 1000);
     },
-    [],
+    [poppedIds],
   );
-
-  // Remove bubbles that floated off screen — respawn them
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setBubbles((prev) => {
-        const toRespawn = prev.filter(
-          (b) => !b.popped && b.delay !== 0 && b.delay < -b.speed - 5,
-        );
-        if (toRespawn.length === 0) return prev;
-        return prev.map((b) =>
-          toRespawn.find((r) => r.id === b.id)
-            ? { ...makeBubble(nextId.current++, true) }
-            : b,
-        );
-      });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden select-none"
-      style={{
-        background:
-          "linear-gradient(180deg, oklch(0.96 0.025 260), oklch(0.94 0.03 310), oklch(0.97 0.02 355))",
-      }}
+      className="relative flex flex-col h-full overflow-hidden bg-gradient-to-b from-sky-100/60 via-purple-50/40 to-pink-100/60 dark:from-slate-900/80 dark:via-purple-900/30 dark:to-slate-800/60"
+      style={{ touchAction: "none" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-2 relative z-10">
+      <div className="relative z-20 flex items-center justify-between px-4 pt-4 pb-2">
         <button
           type="button"
-          data-ocid="bubble.close_button"
-          onClick={onBack}
-          className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
-          style={{ touchAction: "manipulation" }}
+          onPointerDown={onBack}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 dark:bg-white/10 backdrop-blur shadow"
         >
-          <ArrowLeft
-            className="w-5 h-5"
-            style={{ color: "oklch(0.45 0.10 280)" }}
-          />
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className="text-center">
-          <p
-            className="text-sm font-bold"
-            style={{ color: "oklch(0.40 0.10 290)" }}
-          >
-            Bubble Pop 🫧
-          </p>
-          <motion.p
-            key={popped}
-            initial={{ scale: 1.3, opacity: 0.6 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="text-xs font-bold"
-            style={{ color: "oklch(0.55 0.08 300)" }}
-          >
-            Popped: {popped}
-          </motion.p>
+        <div className="flex flex-col items-center">
+          <span className="text-xl font-bold tracking-tight">
+            🫧 Bubble Pop
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Tap the bubbles!
+          </span>
         </div>
-        <div className="w-9" />
+        <div className="flex flex-col items-center min-w-[56px]">
+          <span className="text-2xl font-extrabold text-purple-500 dark:text-purple-300 leading-none">
+            {count}
+          </span>
+          <span className="text-[10px] text-muted-foreground">popped</span>
+        </div>
       </div>
 
-      {/* Bubbles */}
-      <div className="flex-1 relative" style={{ touchAction: "none" }}>
-        {bubbles
-          .filter((b) => !b.popped)
-          .map((bubble) => (
-            <motion.button
-              key={bubble.id}
-              type="button"
-              data-ocid="bubble.canvas_target"
-              className="absolute rounded-full cursor-pointer focus:outline-none"
+      {/* Bubble field */}
+      <div className="relative flex-1 w-full overflow-hidden">
+        {bubbles.map((bubble) => (
+          <div
+            key={bubble.id}
+            onPointerDown={(e) => handlePop(e, bubble)}
+            style={{
+              position: "absolute",
+              left: `${bubble.x}%`,
+              bottom: "-100px",
+              width: bubble.size,
+              height: bubble.size,
+              background: BUBBLE_COLORS[bubble.colorIndex],
+              borderRadius: "50%",
+              cursor: "pointer",
+              boxShadow:
+                "inset -3px -3px 8px rgba(255,255,255,0.5), 0 2px 12px rgba(0,0,0,0.10)",
+              animation: `bubbleFloat ${bubble.duration}s ${bubble.delay}s linear infinite`,
+              opacity: poppedIds.has(bubble.id) ? 0 : 1,
+              transition: "opacity 0.1s",
+              touchAction: "none",
+              userSelect: "none",
+            }}
+          >
+            {/* Shine highlight */}
+            <div
               style={{
-                width: bubble.size,
-                height: bubble.size,
-                left: `${bubble.x}%`,
-                background: BUBBLE_COLORS[bubble.colorIndex],
-                boxShadow:
-                  "inset -4px -4px 8px oklch(1 0 0 / 0.3), inset 2px 2px 6px oklch(1 0 0 / 0.5), 0 4px 12px oklch(0 0 0 / 0.08)",
-                translateX: "-50%",
-                touchAction: "none",
+                position: "absolute",
+                top: "15%",
+                left: "20%",
+                width: "30%",
+                height: "20%",
+                background: "rgba(255,255,255,0.55)",
+                borderRadius: "50%",
+                filter: "blur(2px)",
+                pointerEvents: "none",
               }}
-              initial={{ y: "110vh", opacity: 0 }}
-              animate={{
-                y: bubble.spawning ? "110vh" : "-15vh",
-                opacity: bubble.spawning ? 0 : 1,
-              }}
-              transition={{
-                y: {
-                  duration: bubble.speed,
-                  ease: "linear",
-                  delay: bubble.delay < 0 ? 0 : bubble.delay,
-                  repeat: Number.POSITIVE_INFINITY,
-                  repeatType: "loop",
-                },
-                opacity: { duration: 0.4 },
-              }}
-              onPointerDown={(e) => handlePop(e, bubble)}
-              onClick={(e) => handlePop(e, bubble)}
-              whileTap={{ scale: 0.85 }}
-            >
-              {/* Bubble shine */}
-              <div
-                className="absolute rounded-full"
-                style={{
-                  top: "18%",
-                  left: "22%",
-                  width: "30%",
-                  height: "20%",
-                  background: "oklch(1 0 0 / 0.55)",
-                  filter: "blur(1.5px)",
-                }}
-              />
-            </motion.button>
-          ))}
-
-        {/* Burst animations */}
-        <AnimatePresence>
-          {bursting.map((burst) => (
-            <motion.div
-              key={`burst-${burst.id}`}
-              className="fixed pointer-events-none"
-              style={{ left: burst.x, top: burst.y, zIndex: 60 }}
-              initial={{ scale: 0, opacity: 1 }}
-              animate={{ scale: 2.5, opacity: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-            >
-              <div
-                className="w-10 h-10 rounded-full"
-                style={{
-                  background:
-                    "radial-gradient(circle, oklch(0.90 0.08 330 / 0.7), transparent)",
-                  transform: "translate(-50%, -50%)",
-                }}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+            />
+          </div>
+        ))}
       </div>
 
-      {/* Bottom hint */}
-      <p
-        className="text-center text-xs pb-6 font-medium"
-        style={{ color: "oklch(0.60 0.07 280)" }}
-      >
-        Tap the bubbles to pop them 🫧
-      </p>
+      {/* Burst particles — rendered in fixed coords */}
+      <AnimatePresence>
+        {bursts.map((burst) => (
+          <motion.div
+            key={burst.id}
+            initial={{ opacity: 1, scale: 0.5 }}
+            animate={{ opacity: 0, scale: 2.5 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            style={{
+              position: "fixed",
+              left: burst.x - 30,
+              top: burst.y - 30,
+              width: 60,
+              height: 60,
+              pointerEvents: "none",
+              zIndex: 50,
+            }}
+          >
+            {[0, 60, 120, 180, 240, 300].map((angle) => (
+              <motion.div
+                key={angle}
+                initial={{ x: 0, y: 0, opacity: 1 }}
+                animate={{
+                  x: Math.cos((angle * Math.PI) / 180) * 35,
+                  y: Math.sin((angle * Math.PI) / 180) * 35,
+                  opacity: 0,
+                }}
+                transition={{ duration: 0.4 }}
+                style={{
+                  position: "absolute",
+                  left: 26,
+                  top: 26,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: BUBBLE_COLORS[burst.id % BUBBLE_COLORS.length],
+                  pointerEvents: "none",
+                }}
+              />
+            ))}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Instructions */}
+      <div className="relative z-20 text-center text-xs text-muted-foreground pb-4 pt-1">
+        Tap bubbles to pop them and feel the calm 🌸
+      </div>
     </div>
   );
 }
