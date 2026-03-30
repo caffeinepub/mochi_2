@@ -516,11 +516,18 @@ export default function MoodTab() {
               onPointerDown={(e) => {
                 pointerStart.current = { x: e.clientX, y: e.clientY };
               }}
+              onPointerMove={(e) => {
+                if (!pointerStart.current) return;
+                const dx = e.clientX - pointerStart.current.x;
+                const dy = e.clientY - pointerStart.current.y;
+                if (Math.sqrt(dx * dx + dy * dy) > 15)
+                  pointerStart.current = null;
+              }}
               onPointerUp={(e) => {
                 if (!pointerStart.current) return;
                 const dx = e.clientX - pointerStart.current.x;
                 const dy = e.clientY - pointerStart.current.y;
-                if (Math.sqrt(dx * dx + dy * dy) < 8) setActiveGame(game.id);
+                if (Math.sqrt(dx * dx + dy * dy) < 20) setActiveGame(game.id);
                 pointerStart.current = null;
               }}
               whileTap={{ scale: 0.95 }}
