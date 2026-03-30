@@ -143,7 +143,10 @@ export default function ProfileTab() {
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const nickname = profile?.nickname ?? "HappyCloud42";
+  const nickname =
+    profile?.nickname ??
+    localStorage.getItem("mochi_nickname") ??
+    "HappyCloud42";
   const localPoints = Number(localStorage.getItem("mochi_local_points") ?? "0");
   const points = Number(profile?.points ?? 0) + localPoints;
   const tier = getTier(points);
@@ -174,11 +177,22 @@ export default function ProfileTab() {
   }
 
   async function saveEdit() {
-    await saveProfile.mutateAsync(editNickname);
+    // Always save locally first so the button always works
     setBio(editBio);
     setAvatarColor(editAvatarColor);
     localStorage.setItem("mochi_bio", editBio);
     localStorage.setItem("mochi_avatar_color", String(editAvatarColor));
+    if (editNickname.trim()) {
+      localStorage.setItem("mochi_nickname", editNickname.trim());
+    }
+    // Try to sync to backend if logged in
+    if (isLoggedIn) {
+      try {
+        await saveProfile.mutateAsync(editNickname);
+      } catch {
+        // Backend sync failed but local save succeeded — that's fine
+      }
+    }
     setIsEditing(false);
     toast.success("Profile updated! 💜");
   }
