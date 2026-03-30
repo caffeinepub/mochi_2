@@ -926,7 +926,7 @@ export default function FriendsTab() {
     if (
       openChat.isAI &&
       openChat.aiCompanion &&
-      (type === "text" || type === "image")
+      (type === "text" || type === "image" || type === "video")
     ) {
       setAiTyping(true);
       const companion = openChat.aiCompanion;
@@ -959,7 +959,9 @@ export default function FriendsTab() {
       const userTextForAI =
         type === "image"
           ? "What do you think about this photo I sent you?"
-          : textSent;
+          : type === "video"
+            ? "I sent you a video! What do you think?"
+            : textSent;
       const imageForAI = type === "image" ? mediaUrl : undefined;
       const geminiReply = await callGemini(
         systemPrompt,

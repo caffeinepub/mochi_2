@@ -603,10 +603,16 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                         type="button"
                         data-ocid={`post.item.${i + 1}.toggle`}
                         onClick={() => {
-                          if (!liked) {
-                            setLikedPosts((s) => new Set([...s, postKey]));
-                            likePost.mutate(BigInt(i));
-                          }
+                          setLikedPosts((s) => {
+                            const next = new Set(s);
+                            if (next.has(postKey)) {
+                              next.delete(postKey);
+                            } else {
+                              next.add(postKey);
+                              likePost.mutate(BigInt(i));
+                            }
+                            return next;
+                          });
                         }}
                         className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${
                           liked
@@ -731,21 +737,21 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                           type="button"
                           data-ocid={`post.item.${i + 1}.toggle`}
                           onClick={() => {
-                            if (!likedLocalPosts.has(post.id)) {
-                              const updated = new Set([
-                                ...likedLocalPosts,
-                                post.id,
-                              ]);
-                              setLikedLocalPosts(updated);
-                              localStorage.setItem(
-                                "mochi_liked_posts",
-                                JSON.stringify([...updated]),
-                              );
+                            const next = new Set(likedLocalPosts);
+                            if (next.has(post.id)) {
+                              next.delete(post.id);
+                            } else {
+                              next.add(post.id);
                               addNotification({
                                 type: "like",
                                 text: "You liked a post ❤️",
                               });
                             }
+                            setLikedLocalPosts(next);
+                            localStorage.setItem(
+                              "mochi_liked_posts",
+                              JSON.stringify([...next]),
+                            );
                           }}
                           className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${likedLocalPosts.has(post.id) ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                         >
