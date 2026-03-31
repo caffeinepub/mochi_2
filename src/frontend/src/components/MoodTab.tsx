@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useLanguage } from "../context/LanguageContext";
 import { useAddMoodEntry } from "../hooks/useQueries";
@@ -692,7 +693,20 @@ export default function MoodTab() {
               key={game.id}
               data-ocid={`mood.${game.id}.button`}
               whileTap={{ scale: 0.95 }}
-              onPointerDown={() => setActiveGame(game.id)}
+              onPointerDown={(e) => {
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const onUp = (ev: PointerEvent) => {
+                  document.removeEventListener("pointerup", onUp);
+                  if (
+                    Math.abs(ev.clientX - startX) < 8 &&
+                    Math.abs(ev.clientY - startY) < 8
+                  ) {
+                    setActiveGame(game.id);
+                  }
+                };
+                document.addEventListener("pointerup", onUp);
+              }}
               className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border"
               style={{
                 width: 140,
@@ -728,43 +742,17 @@ export default function MoodTab() {
         </a>
       </div>
 
-      {/* Game Overlay */}
-      <AnimatePresence>
-        {activeGame && (
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            data-ocid="mood.modal"
+      {/* Game Portal - renders directly at body level to avoid stacking context issues */}
+      {activeGame &&
+        createPortal(
+          <div
             style={{
               position: "fixed",
               inset: 0,
-              zIndex: 50,
-              background: "oklch(var(--background))",
-              overflowY: "auto",
+              zIndex: 9999,
+              touchAction: "none",
             }}
           >
-            <button
-              type="button"
-              data-ocid="mood.close_button"
-              onPointerDown={() => setActiveGame(null)}
-              className="flex items-center gap-1.5 font-bold text-sm text-foreground"
-              style={{
-                position: "absolute",
-                top: 48,
-                left: 16,
-                zIndex: 51,
-                touchAction: "manipulation",
-                background: "oklch(var(--card))",
-                border: "1px solid oklch(var(--border))",
-                borderRadius: "999px",
-                padding: "8px 16px",
-                boxShadow: "0 2px 8px oklch(0 0 0 / 0.08)",
-              }}
-            >
-              ← Back
-            </button>
             {activeGame === "bubble" && (
               <BubblePopGame onBack={() => setActiveGame(null)} />
             )}
@@ -789,37 +777,9 @@ export default function MoodTab() {
             {activeGame === "squeeze" && (
               <SqueezeBallGame onBack={() => setActiveGame(null)} />
             )}
-            {/* Floating Exit Game Button */}
-            <button
-              type="button"
-              data-ocid="mood.close_button"
-              onPointerDown={() => setActiveGame(null)}
-              style={{
-                position: "fixed",
-                bottom: 80,
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 60,
-                touchAction: "manipulation",
-                background:
-                  "linear-gradient(135deg, oklch(0.62 0.22 15), oklch(0.55 0.24 340))",
-                color: "#fff",
-                border: "none",
-                borderRadius: "999px",
-                padding: "14px 32px",
-                fontSize: "16px",
-                fontWeight: "700",
-                minWidth: "200px",
-                boxShadow: "0 4px 20px oklch(0.55 0.24 15 / 0.45)",
-                cursor: "pointer",
-                letterSpacing: "0.02em",
-              }}
-            >
-              🚪 Game Chhodo
-            </button>
-          </motion.div>
+          </div>,
+          document.body,
         )}
-      </AnimatePresence>
     </div>
   );
 }
