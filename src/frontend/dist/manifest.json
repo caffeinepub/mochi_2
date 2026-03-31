@@ -1,0 +1,13 @@
+{
+  "name": "Mochi – Feel Seen. Feel Heard.",
+  "short_name": "Mochi",
+  "description": "Anonymous mental health and social support for Gen Z",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf4ff",
+  "theme_color": "#d946ef",
+  "icons": [
+    { "src": "/assets/generated/mochi-mascot-transparent.dim_400x400.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/generated/mochi-mascot-transparent.dim_400x400.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

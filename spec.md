@@ -1,28 +1,30 @@
-# Mochi
+# Mochi — Sound + Games Fix + Install Button
 
 ## Current State
-8 games in Mood tab (Breathe, Bubble Pop, Memory Match, Word Scramble, Zen Tap, Squeeze Ball, Number Rush, Color Flood). Games are accessible via a horizontal-scroll card row. Each game opens as a fixed inset-0 fullscreen overlay.
+- FloatingMochi: tap-to-grow-and-burst animation exists but no sound
+- Games: most use onClick which has 300ms delay on mobile causing unresponsive feel; MemoryGame card flips use onClick
+- ProfileTab: no app install option
+- No PWA manifest.json exists
 
 ## Requested Changes (Diff)
 
 ### Add
-- Nothing new
+- Sound effects in FloatingMochi: small 'pip' tone on each tap, loud BOOM sound on burst (Web Audio API)
+- Install App button in ProfileTab below the Language section (PWA beforeinstallprompt)
+- manifest.json in public/ for PWA support
 
 ### Modify
-- MoodTab game card tapping: replace complex pointer tracking (pointerStart ref + 3 handlers, 15-20px threshold) with simple onClick + touchAction manipulation. onClick is safe here because pan-x scroll containers do not fire onClick on children during scroll.
-- ZenTapGame: remove onClick from shape tap targets, keep only onPointerDown to avoid double-firing on mobile
-- All game containers root div: add style={{ height: '100dvh' }} for iOS Safari dynamic viewport height so URL bar doesn't clip games
-- All game back buttons and restart buttons: use onPointerDown instead of onClick for instant mobile response
-- BreathingGame: change circle onClick to onPointerDown
-- All in-game interactive elements: ensure onPointerDown is used, not onClick
-- MemoryGame: ensure card flip uses onPointerDown
+- MemoryGame: switch card flip handler from onClick to onPointerDown to eliminate 300ms tap delay on mobile; add touchAction: 'manipulation' to all buttons
+- ZenTapGame: already uses onPointerDown but ensure shapes have touchAction: 'none'
+- All game back/restart/action buttons: ensure onPointerDown or touchAction: manipulation is used consistently
+- BubblePopGame: already working, verify no regressions
 
 ### Remove
-- pointerStart ref and 3-handler pointer event tracking from MoodTab game cards
-- onClick from ZenTap shape motion.button targets
+- Nothing
 
 ## Implementation Plan
-1. MoodTab.tsx: delete pointerStart useRef, remove onPointerDown/onPointerMove/onPointerUp from game motion.button cards, add onClick={() => setActiveGame(game.id)}
-2. Each game file (BubblePopGame, ZenTapGame, BreathingGame, MemoryGame, WordScrambleGame, SqueezeBallGame, NumberOrderGame, ColorFloodGame): update root container height style, convert back/restart onClick to onPointerDown, convert in-game tap targets to onPointerDown
-3. ZenTapGame specifically: remove onClick prop from shape motion.button
-4. Validate build
+1. FloatingMochi.tsx: add playTapSound() (short sine pip) and playBurstSound() (loud BOOM) using Web Audio API; call playTapSound on each tap, playBurstSound in triggerBurst()
+2. MemoryGame.tsx: change handleFlip trigger from onClick to onPointerDown; add touchAction: 'manipulation' style to all buttons
+3. ProfileTab.tsx: add usePWAInstall hook (listens for beforeinstallprompt), show Install App card/button below Language section only when prompt is available
+4. Create src/frontend/public/manifest.json with app name, icons, theme_color, display: standalone
+5. Add <link rel="manifest"> in index.html if not present

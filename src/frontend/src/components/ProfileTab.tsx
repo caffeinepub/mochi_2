@@ -6,6 +6,7 @@ import {
   Award,
   Camera,
   Check,
+  Download,
   Edit3,
   Globe,
   Heart,
@@ -212,6 +213,26 @@ function MochiProfileGuide() {
 
 export default function ProfileTab() {
   const { lang, setLang, t } = useLanguage();
+  const [canInstall, setCanInstall] = useState(false);
+  const deferredPrompt = useRef<any>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPrompt.current = e;
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt.current) return;
+    deferredPrompt.current.prompt();
+    await deferredPrompt.current.userChoice;
+    setCanInstall(false);
+    deferredPrompt.current = null;
+  };
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
   const { data: profile, isLoading } = useGetCallerProfile();
@@ -845,6 +866,32 @@ export default function ProfileTab() {
           ))}
         </div>
       </div>
+
+      {/* PWA Install */}
+      {canInstall && (
+        <div className="mx-4 mb-4 bg-card rounded-2xl p-4 shadow-card border border-border">
+          <h3 className="font-bold text-sm text-foreground mb-1 flex items-center gap-1.5">
+            <Download className="w-4 h-4 text-secondary" />
+            Install Mochi App
+          </h3>
+          <p className="text-xs text-muted-foreground mb-3">
+            Add to your home screen for the best experience 📱
+          </p>
+          <button
+            type="button"
+            data-ocid="profile.install_button"
+            onPointerDown={handleInstall}
+            className="w-full py-2.5 rounded-xl text-sm font-bold text-white transition-all active:scale-95"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
+              touchAction: "manipulation",
+            }}
+          >
+            Install Now ✨
+          </button>
+        </div>
+      )}
 
       <div className="text-center pb-6 text-xs text-muted-foreground px-4">
         &copy; {new Date().getFullYear()}. Built with{" "}

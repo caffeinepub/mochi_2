@@ -161,7 +161,8 @@ export default function MemoryGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="memory.close_button"
-          onClick={selectedLevel ? newGame : onBack}
+          onPointerDown={selectedLevel ? newGame : onBack}
+          style={{ touchAction: "manipulation" }}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
         >
           <ArrowLeft
@@ -186,7 +187,10 @@ export default function MemoryGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="memory.secondary_button"
-          onClick={selectedLevel ? () => startGame(selectedLevel) : onBack}
+          onPointerDown={
+            selectedLevel ? () => startGame(selectedLevel) : onBack
+          }
+          style={{ touchAction: "manipulation" }}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
         >
           <RefreshCw
@@ -227,9 +231,10 @@ export default function MemoryGame({ onBack }: { onBack: () => void }) {
                   key={lvl}
                   type="button"
                   data-ocid={`memory.${lvl}.button`}
-                  onClick={() => startGame(lvl)}
+                  onPointerDown={() => startGame(lvl)}
                   className="w-full max-w-xs rounded-3xl p-5 flex items-center gap-4 active:scale-95 transition-transform"
                   style={{
+                    touchAction: "manipulation",
                     background: "rgba(255,255,255,0.65)",
                     backdropFilter: "blur(16px)",
                     boxShadow: "0 4px 20px oklch(0.72 0.10 300 / 0.15)",
@@ -313,9 +318,9 @@ export default function MemoryGame({ onBack }: { onBack: () => void }) {
                     key={card.id}
                     type="button"
                     data-ocid={`memory.item.${idx + 1}`}
-                    onClick={() => handleFlip(card)}
+                    onPointerDown={() => handleFlip(card)}
                     className="relative aspect-square rounded-2xl focus:outline-none"
-                    style={{ perspective: 600 }}
+                    style={{ perspective: 600, touchAction: "manipulation" }}
                     whileTap={
                       !card.matched && !card.flipped ? { scale: 0.92 } : {}
                     }
