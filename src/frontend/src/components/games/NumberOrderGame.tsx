@@ -96,7 +96,7 @@ export default function NumberOrderGame({ onBack }: { onBack: () => void }) {
           <button
             type="button"
             data-ocid="numberorder.close_button"
-            onClick={onBack}
+            onPointerDown={onBack}
             className="p-2 rounded-full bg-white/60 backdrop-blur-sm"
             style={{ touchAction: "manipulation" }}
           >
@@ -175,7 +175,7 @@ export default function NumberOrderGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="numberorder.close_button"
-          onClick={() => setDifficulty(null)}
+          onPointerDown={() => setDifficulty(null)}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm"
           style={{ touchAction: "manipulation" }}
         >

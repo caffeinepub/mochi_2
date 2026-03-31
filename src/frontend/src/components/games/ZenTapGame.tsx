@@ -155,7 +155,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="zentap.close_button"
-          onClick={onBack}
+          onPointerDown={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
           style={{ touchAction: "manipulation" }}
         >
@@ -312,7 +312,7 @@ export default function ZenTapGame({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   data-ocid="zentap.primary_button"
-                  onClick={phase === "levelup" ? nextLevel : restart}
+                  onPointerDown={phase === "levelup" ? nextLevel : restart}
                   className="px-8 py-3.5 rounded-2xl font-bold text-white shadow-xl active:scale-95 transition-transform"
                   style={{
                     background:

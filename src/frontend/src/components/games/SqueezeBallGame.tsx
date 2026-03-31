@@ -85,7 +85,7 @@ export default function SqueezeBallGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="squeezeball.close_button"
-          onClick={onBack}
+          onPointerDown={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
           style={{ touchAction: "manipulation" }}
         >
@@ -116,7 +116,7 @@ export default function SqueezeBallGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="squeezeball.secondary_button"
-          onClick={handleReset}
+          onPointerDown={handleReset}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
           style={{ touchAction: "manipulation" }}
         >
@@ -273,7 +273,7 @@ export default function SqueezeBallGame({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 data-ocid="squeezeball.primary_button"
-                onClick={handleReset}
+                onPointerDown={handleReset}
                 className="px-8 py-3 rounded-2xl font-bold text-white shadow-lg active:scale-95 transition-transform"
                 style={{
                   background:

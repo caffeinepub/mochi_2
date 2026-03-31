@@ -111,7 +111,7 @@ export default function ColorFloodGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="colorflood.close_button"
-          onClick={onBack}
+          onPointerDown={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm"
           style={{ touchAction: "manipulation" }}
         >
@@ -137,7 +137,7 @@ export default function ColorFloodGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="colorflood.secondary_button"
-          onClick={handleReset}
+          onPointerDown={handleReset}
           className="text-xs font-bold px-3 py-1.5 rounded-full bg-white/60"
           style={{ color: "oklch(0.45 0.10 355)", touchAction: "manipulation" }}
         >

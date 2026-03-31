@@ -60,7 +60,7 @@ export default function BreathingGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="breathing.close_button"
-          onClick={onBack}
+          onPointerDown={onBack}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
         >
           <ArrowLeft
@@ -84,7 +84,7 @@ export default function BreathingGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="breathing.secondary_button"
-          onClick={() => {
+          onPointerDown={() => {
             setDone(false);
             setRound(1);
             setPhaseIndex(0);
@@ -125,7 +125,7 @@ export default function BreathingGame({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 data-ocid="breathing.primary_button"
-                onClick={() => {
+                onPointerDown={() => {
                   setDone(false);
                   setRound(1);
                   setPhaseIndex(0);
@@ -147,7 +147,7 @@ export default function BreathingGame({ onBack }: { onBack: () => void }) {
                 type="button"
                 data-ocid="breathing.canvas_target"
                 className="relative flex items-center justify-center cursor-pointer bg-transparent border-none p-0"
-                onClick={() => setRunning(true)}
+                onPointerDown={() => setRunning(true)}
                 style={{ width: 260, height: 260 }}
               >
                 {/* Outer glow ring */}

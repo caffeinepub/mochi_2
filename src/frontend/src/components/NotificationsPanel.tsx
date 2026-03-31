@@ -29,6 +29,7 @@ const TYPE_ICONS: Record<Notification["type"], string> = {
   comment: "💬",
   friend_request: "👥",
   friend_accepted: "✅",
+  monthly_review: "📊",
 };
 
 export default function NotificationsPanel({

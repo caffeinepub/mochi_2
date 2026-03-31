@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -296,6 +296,12 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
     seedSampleNotifications();
     return loadNotifications().filter((n) => !n.read).length;
   });
+  const [canInstall, setCanInstall] = useState(false);
+  const [installDismissed, setInstallDismissed] = useState(false);
+  const deferredPromptRef = useRef<
+    | (Event & { prompt: () => void; userChoice: Promise<{ outcome: string }> })
+    | null
+  >(null);
 
   const categories = [
     { key: null, label: "All" },
@@ -342,6 +348,30 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
     window.addEventListener("mochi-notification", handler);
     return () => window.removeEventListener("mochi-notification", handler);
   }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mount once
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredPromptRef.current = e as Event & {
+        prompt: () => void;
+        userChoice: Promise<{ outcome: string }>;
+      };
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPromptRef.current) return;
+    deferredPromptRef.current.prompt();
+    const choice = await deferredPromptRef.current.userChoice;
+    if (choice.outcome === "accepted") {
+      setCanInstall(false);
+    }
+    deferredPromptRef.current = null;
+  };
 
   return (
     <div className="flex flex-col">
@@ -438,6 +468,77 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
           )}
         </button>
       </header>
+
+      {/* Install App Banner */}
+      {canInstall && !installDismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -12 }}
+          className="mx-4 mt-3 mb-1 rounded-2xl flex items-center gap-3 px-4 py-3"
+          data-ocid="home.panel"
+          style={{
+            background: isDark
+              ? "linear-gradient(135deg, oklch(0.22 0.08 290 / 0.9), oklch(0.20 0.09 320 / 0.9))"
+              : "linear-gradient(135deg, oklch(0.96 0.04 290 / 0.95), oklch(0.95 0.05 340 / 0.95))",
+            border: isDark
+              ? "1px solid oklch(0.78 0.20 290 / 0.18)"
+              : "1px solid oklch(0.85 0.08 290 / 0.5)",
+            boxShadow: "0 2px 12px oklch(0.6 0.15 290 / 0.12)",
+          }}
+        >
+          <span className="text-xl">📲</span>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-xs font-bold"
+              style={{
+                color: isDark ? "oklch(0.88 0.10 290)" : "oklch(0.35 0.14 290)",
+              }}
+            >
+              Mochi Install Karo
+            </p>
+            <p
+              className="text-xs"
+              style={{
+                color: isDark ? "oklch(0.70 0.05 290)" : "oklch(0.50 0.08 290)",
+              }}
+            >
+              Home Screen pe add karo!
+            </p>
+          </div>
+          <button
+            type="button"
+            data-ocid="home.primary_button"
+            onPointerDown={handleInstallClick}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl"
+            style={{
+              touchAction: "manipulation",
+              background:
+                "linear-gradient(135deg, oklch(0.62 0.20 290), oklch(0.58 0.22 320))",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Install
+          </button>
+          <button
+            type="button"
+            data-ocid="home.close_button"
+            onPointerDown={() => setInstallDismissed(true)}
+            className="text-muted-foreground hover:text-foreground"
+            style={{
+              touchAction: "manipulation",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+            }}
+          >
+            <X size={16} />
+          </button>
+        </motion.div>
+      )}
 
       {/* Stories Section */}
       <div className="pt-3 pb-1">

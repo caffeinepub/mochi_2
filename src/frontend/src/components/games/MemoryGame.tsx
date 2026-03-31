@@ -291,7 +291,7 @@ export default function MemoryGame({ onBack }: { onBack: () => void }) {
                     <button
                       type="button"
                       data-ocid="memory.next_level_button"
-                      onClick={() =>
+                      onPointerDown={() =>
                         startGame(selectedLevel === "easy" ? "medium" : "hard")
                       }
                       className="mt-2 px-5 py-1.5 rounded-full text-xs font-bold text-white"

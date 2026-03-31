@@ -1,6 +1,11 @@
 export interface Notification {
   id: string;
-  type: "like" | "comment" | "friend_request" | "friend_accepted";
+  type:
+    | "like"
+    | "comment"
+    | "friend_request"
+    | "friend_accepted"
+    | "monthly_review";
   text: string;
   time: string;
   read: boolean;

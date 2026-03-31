@@ -29,12 +29,12 @@ const BUBBLE_COLORS = [
   },
 ];
 
-interface Bubble {
+interface BubbleData {
   id: number;
   x: number;
+  y: number;
   size: number;
-  duration: number;
-  delay: number;
+  speed: number;
   colorIndex: number;
 }
 
@@ -45,13 +45,16 @@ interface BurstParticle {
   colorIndex: number;
 }
 
-function makeBubble(id: number, delay = 0): Bubble {
+const BUBBLE_COUNT = 12;
+let globalBubbleId = 0;
+
+function makeBubbleData(h: number, randomY = false): BubbleData {
   return {
-    id,
+    id: ++globalBubbleId,
     x: 5 + Math.random() * 88,
+    y: randomY ? Math.random() * h : h + 20 + Math.random() * 100,
     size: 44 + Math.random() * 36,
-    duration: 7 + Math.random() * 8,
-    delay,
+    speed: 0.7 + Math.random() * 0.9,
     colorIndex: Math.floor(Math.random() * BUBBLE_COLORS.length),
   };
 }
@@ -76,49 +79,67 @@ function playPopSound() {
     osc.stop(ctx.currentTime + 0.15);
     setTimeout(() => ctx.close(), 300);
   } catch (_) {
-    // Audio not supported, silently skip
+    // Audio not supported
   }
 }
 
-const INITIAL_COUNT = 12;
-
 export default function BubblePopGame({ onBack }: { onBack: () => void }) {
-  const [bubbles, setBubbles] = useState<Bubble[]>(() =>
-    Array.from({ length: INITIAL_COUNT }, (_, i) =>
-      makeBubble(i, -Math.random() * 8),
-    ),
-  );
+  const [bubbles, setBubbles] = useState<BubbleData[]>([]);
   const [bursts, setBursts] = useState<BurstParticle[]>([]);
   const [count, setCount] = useState(0);
-  const nextId = useRef(INITIAL_COUNT);
 
-  // Inject CSS keyframe for bubble rise
-  useEffect(() => {
-    const styleId = "bubble-rise-keyframe";
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = `
-        @keyframes bubbleRise {
-          0%   { transform: translateX(-50%) translateY(0)   scale(1); opacity: 0.85; }
-          5%   { opacity: 1; }
-          90%  { opacity: 0.9; }
-          100% { transform: translateX(-50%) translateY(-110vh) scale(0.85); opacity: 0; }
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const positionsRef = useRef<Map<number, BubbleData>>(new Map());
+  const domRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const poppedRef = useRef<Set<number>>(new Set());
+
+  const startLoop = useCallback(() => {
+    const container = containerRef.current;
+    const tick = () => {
+      const h = (container?.offsetHeight ?? window.innerHeight) - 100;
+      positionsRef.current.forEach((data, id) => {
+        if (poppedRef.current.has(id)) return;
+        data.y -= data.speed;
+        if (data.y < -data.size) {
+          data.y = h + 20;
+          data.x = 5 + Math.random() * 88;
         }
-      `;
-      document.head.appendChild(style);
-    }
+        const el = domRefs.current.get(id);
+        if (el) {
+          el.style.top = `${data.y}px`;
+          el.style.left = `${data.x}%`;
+        }
+      });
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
   }, []);
 
-  const handlePop = useCallback((e: React.PointerEvent, bubble: Bubble) => {
+  useEffect(() => {
+    const h = (containerRef.current?.offsetHeight ?? window.innerHeight) - 100;
+    const initial = Array.from({ length: BUBBLE_COUNT }, () =>
+      makeBubbleData(h, true),
+    );
+    for (const b of initial) {
+      positionsRef.current.set(b.id, { ...b });
+    }
+    setBubbles(initial);
+    startLoop();
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [startLoop]);
+
+  const handlePop = useCallback((e: React.PointerEvent, bubble: BubbleData) => {
     e.stopPropagation();
     e.preventDefault();
-
+    if (poppedRef.current.has(bubble.id)) return;
+    poppedRef.current.add(bubble.id);
     playPopSound();
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const burstId = Date.now() + Math.random();
-
     setBursts((prev) => [
       ...prev,
       {
@@ -129,29 +150,36 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
       },
     ]);
 
-    setBubbles((prev) => {
-      const filtered = prev.filter((b) => b.id !== bubble.id);
-      const newId = nextId.current++;
-      return [...filtered, makeBubble(newId, 0)];
-    });
-
+    positionsRef.current.delete(bubble.id);
+    domRefs.current.delete(bubble.id);
+    const h = (containerRef.current?.offsetHeight ?? window.innerHeight) - 100;
+    const newB = makeBubbleData(h, false);
+    positionsRef.current.set(newB.id, { ...newB });
+    setBubbles((prev) => [...prev.filter((b) => b.id !== bubble.id), newB]);
     setCount((c) => c + 1);
-
     setTimeout(() => {
       setBursts((prev) => prev.filter((b) => b.id !== burstId));
+      poppedRef.current.delete(bubble.id);
     }, 600);
   }, []);
 
   const handleRestart = useCallback(() => {
-    nextId.current = INITIAL_COUNT;
-    setBubbles(
-      Array.from({ length: INITIAL_COUNT }, (_, i) =>
-        makeBubble(i, -Math.random() * 8),
-      ),
+    if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    positionsRef.current.clear();
+    domRefs.current.clear();
+    poppedRef.current.clear();
+    const h = (containerRef.current?.offsetHeight ?? window.innerHeight) - 100;
+    const initial = Array.from({ length: BUBBLE_COUNT }, () =>
+      makeBubbleData(h, true),
     );
+    for (const b of initial) {
+      positionsRef.current.set(b.id, { ...b });
+    }
+    setBubbles(initial);
     setBursts([]);
     setCount(0);
-  }, []);
+    startLoop();
+  }, [startLoop]);
 
   return (
     <div
@@ -163,12 +191,12 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
         overflow: "hidden",
       }}
     >
-      {/* Header */}
       <div className="relative z-20 flex items-center justify-between px-4 pt-12 pb-2 shrink-0">
         <button
           type="button"
           onPointerDown={onBack}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 dark:bg-white/10 backdrop-blur shadow"
+          style={{ touchAction: "manipulation" }}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/60 backdrop-blur shadow"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -194,6 +222,7 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
             type="button"
             data-ocid="bubblepop.secondary_button"
             onPointerDown={handleRestart}
+            style={{ touchAction: "manipulation" }}
             className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
           >
             <RefreshCw
@@ -204,16 +233,29 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* Bubble field */}
-      <div className="relative flex-1 w-full" style={{ overflow: "hidden" }}>
+      <div
+        ref={containerRef}
+        className="relative flex-1 w-full"
+        style={{ overflow: "hidden" }}
+      >
         {bubbles.map((bubble) => (
           <div
             key={bubble.id}
+            ref={(el) => {
+              if (el) {
+                domRefs.current.set(bubble.id, el);
+                const data = positionsRef.current.get(bubble.id);
+                if (data) {
+                  el.style.top = `${data.y}px`;
+                  el.style.left = `${data.x}%`;
+                }
+              } else {
+                domRefs.current.delete(bubble.id);
+              }
+            }}
             onPointerDown={(e) => handlePop(e, bubble)}
             style={{
               position: "absolute",
-              left: `${bubble.x}%`,
-              bottom: 0,
               width: bubble.size,
               height: bubble.size,
               background: BUBBLE_COLORS[bubble.colorIndex].bg,
@@ -223,7 +265,6 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
                 "inset -3px -3px 8px rgba(255,255,255,0.5), 0 2px 12px rgba(0,0,0,0.10)",
               touchAction: "none",
               userSelect: "none",
-              animation: `bubbleRise ${bubble.duration}s ${bubble.delay < 0 ? bubble.delay : 0}s linear infinite`,
             }}
           >
             <div
@@ -243,7 +284,6 @@ export default function BubblePopGame({ onBack }: { onBack: () => void }) {
         ))}
       </div>
 
-      {/* Burst particles */}
       <AnimatePresence>
         {bursts.map((burst) => (
           <motion.div

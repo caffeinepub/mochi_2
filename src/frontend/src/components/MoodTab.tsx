@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "../context/LanguageContext";
 import { useAddMoodEntry } from "../hooks/useQueries";
+import { addNotification } from "../lib/notifications";
 import BreathingGame from "./games/BreathingGame";
 import BubblePopGame from "./games/BubblePopGame";
 import ColorFloodGame from "./games/ColorFloodGame";
@@ -60,78 +61,101 @@ const MOTIVATIONAL = [
   "Being honest about how you feel is brave. 💪",
 ];
 
-type GameScreen =
-  | "breathing"
-  | "bubbles"
-  | "memory"
-  | "wordscramble"
-  | "zentap"
-  | "squeezeball"
-  | "numberorder"
-  | "colorflood"
-  | null;
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
-const GAMES = [
+type GameId =
+  | "bubble"
+  | "memory"
+  | "word"
+  | "breathe"
+  | "zen"
+  | "color"
+  | "number"
+  | "squeeze";
+
+const GAMES: {
+  id: GameId;
+  emoji: string;
+  name: string;
+  tagline: string;
+  gradient: string;
+}[] = [
   {
-    id: "breathing" as GameScreen,
-    name: "Breathe",
-    desc: "Follow the breathing circle",
-    emoji: "🌬️",
-    gradient:
-      "linear-gradient(135deg, oklch(0.90 0.06 355), oklch(0.86 0.08 290))",
-  },
-  {
-    id: "bubbles" as GameScreen,
-    name: "Pop Bubbles",
-    desc: "Pop bubbles to relax",
+    id: "bubble",
     emoji: "🫧",
+    name: "Bubble Pop",
+    tagline: "Pop to de-stress",
     gradient:
-      "linear-gradient(135deg, oklch(0.88 0.07 215), oklch(0.86 0.07 270))",
+      "linear-gradient(135deg, oklch(0.88 0.06 220), oklch(0.85 0.07 255))",
   },
   {
-    id: "memory" as GameScreen,
-    name: "Memory Match",
-    desc: "Train your focus",
+    id: "memory",
     emoji: "🧠",
+    name: "Memory Match",
+    tagline: "Train your brain",
     gradient:
-      "linear-gradient(135deg, oklch(0.90 0.07 60), oklch(0.86 0.07 130))",
+      "linear-gradient(135deg, oklch(0.88 0.06 285), oklch(0.85 0.06 310))",
   },
   {
-    id: "wordscramble" as GameScreen,
+    id: "word",
+    emoji: "📝",
     name: "Word Scramble",
-    emoji: "🔤",
-    desc: "Unscramble words — gets harder with levels!",
-    gradient: "linear-gradient(135deg, #a8edea, #fed6e3)",
+    tagline: "Challenge yourself",
+    gradient:
+      "linear-gradient(135deg, oklch(0.88 0.06 130), oklch(0.85 0.06 160))",
   },
   {
-    id: "zentap" as GameScreen,
-    name: "Zen Tap",
+    id: "breathe",
+    emoji: "🌬️",
+    name: "Breathing",
+    tagline: "Calm down",
+    gradient:
+      "linear-gradient(135deg, oklch(0.88 0.05 195), oklch(0.85 0.06 220))",
+  },
+  {
+    id: "zen",
     emoji: "🎯",
-    desc: "Tap the shapes — test your focus & speed!",
-    gradient: "linear-gradient(135deg, #ffecd2, #fcb69f)",
-  },
-  {
-    id: "squeezeball" as GameScreen,
-    name: "Squeeze Ball",
-    emoji: "🔴",
-    desc: "Squeeze away the stress!",
-    gradient: "linear-gradient(135deg, #fbc2eb, #a6c1ee)",
-  },
-  {
-    id: "numberorder" as GameScreen,
-    name: "Number Rush",
-    emoji: "🔢",
-    desc: "Tap 1 to 25 in order!",
+    name: "Zen Tap",
+    tagline: "Find your flow",
     gradient:
-      "linear-gradient(135deg, oklch(0.90 0.07 130), oklch(0.86 0.07 200))",
+      "linear-gradient(135deg, oklch(0.88 0.06 50), oklch(0.85 0.07 30))",
   },
   {
-    id: "colorflood" as GameScreen,
-    name: "Color Flood",
+    id: "color",
     emoji: "🎨",
-    desc: "Flood the board with one color!",
+    name: "Color Flood",
+    tagline: "Fill with color",
     gradient:
-      "linear-gradient(135deg, oklch(0.90 0.08 60), oklch(0.86 0.07 355))",
+      "linear-gradient(135deg, oklch(0.88 0.06 355), oklch(0.85 0.07 20))",
+  },
+  {
+    id: "number",
+    emoji: "🔢",
+    name: "Number Order",
+    tagline: "Clear your mind",
+    gradient:
+      "linear-gradient(135deg, oklch(0.88 0.05 240), oklch(0.85 0.06 270))",
+  },
+  {
+    id: "squeeze",
+    emoji: "🟡",
+    name: "Squeeze Ball",
+    tagline: "Release tension",
+    gradient:
+      "linear-gradient(135deg, oklch(0.90 0.07 75), oklch(0.86 0.08 55))",
   },
 ];
 
@@ -210,7 +234,7 @@ function generateInsight(
     return "Your mood has been improving this week! 🌟 Whatever you're doing — keep it up. You're growing stronger each day. 💜";
   }
   if (diff <= -1.5 || (lowCount >= 2 && avg < 2.5)) {
-    return "It looks like this week has been tough. That's okay — bad days don't define you. Try a calming game below to reset! 🫧";
+    return "It looks like this week has been tough. That's okay — bad days don't define you. Take a deep breath and be kind to yourself. 🫧";
   }
   if (avg >= 4) {
     return "You've been in great spirits this week! 😄 That positive energy is contagious — keep shining! ✨";
@@ -219,6 +243,85 @@ function generateInsight(
     return "Your mood has been steady this week — consistency is underrated strength. 🌸 Little improvements add up!";
   }
   return "Your week has had its ups and downs — that's so human. Remember to be kind to yourself. 💜";
+}
+
+interface MonthlyReviewData {
+  monthName: string;
+  year: number;
+  daysLogged: number;
+  avgMood: number;
+  moodDist: Record<string, number>;
+  bestDay: number;
+  worstDay: number;
+}
+
+function getPrevMonthMoodData(): MonthlyReviewData | null {
+  const today = new Date();
+  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const year = prevMonth.getFullYear();
+  const month = prevMonth.getMonth(); // 0-indexed
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const entries: number[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const mood = getStoredMood(date);
+    if (mood !== null) entries.push(mood);
+  }
+
+  if (entries.length < 3) return null;
+
+  const avg = entries.reduce((a, b) => a + b, 0) / entries.length;
+  const dist: Record<string, number> = {
+    Rough: 0,
+    Low: 0,
+    Okay: 0,
+    Good: 0,
+    Great: 0,
+  };
+  for (const v of entries) {
+    const label = MOODS.find((m) => m.value === v)?.label ?? "Okay";
+    dist[label] = (dist[label] ?? 0) + 1;
+  }
+
+  return {
+    monthName: MONTH_NAMES[month],
+    year,
+    daysLogged: entries.length,
+    avgMood: avg,
+    moodDist: dist,
+    bestDay: Math.max(...entries),
+    worstDay: Math.min(...entries),
+  };
+}
+
+function checkAndSendMonthlyReview() {
+  const today = new Date();
+  const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const year = prevMonth.getFullYear();
+  const month = prevMonth.getMonth();
+  const reviewKey = `mochi_monthly_review_${year}-${String(month + 1).padStart(2, "0")}`;
+
+  if (localStorage.getItem(reviewKey) === "sent") return;
+
+  const data = getPrevMonthMoodData();
+  if (!data || data.daysLogged < 5) return;
+
+  const avgMoodObj = MOODS.reduce((best, m) =>
+    Math.abs(m.value - data.avgMood) < Math.abs(best.value - data.avgMood)
+      ? m
+      : best,
+  );
+
+  // Find the most frequent mood
+  const topMoodLabel =
+    Object.entries(data.moodDist).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "Okay";
+  const topMoodCount = data.moodDist[topMoodLabel] ?? 0;
+
+  const text = `${data.monthName} ka mood review ready hai! 🌸 Tune ${data.daysLogged} din mood log kiya. Average mood: ${avgMoodObj.label} ${avgMoodObj.emoji}. Sabse zyada: ${topMoodLabel} (${topMoodCount} din). Keep it up babe 💜`;
+
+  addNotification({ type: "monthly_review", text });
+  localStorage.setItem(reviewKey, "sent");
 }
 
 export default function MoodTab() {
@@ -230,14 +333,11 @@ export default function MoodTab() {
   const [logged, setLogged] = useState<boolean>(
     () => getStoredMood(new Date()) !== null,
   );
-  const [activeGame, setActiveGame] = useState<GameScreen>(null);
+  const [activeGame, setActiveGame] = useState<GameId | null>(null);
   const addMoodEntry = useAddMoodEntry();
   const motivational =
     MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
 
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
-
-  // Recheck on mount in case the date changed while app was open
   useEffect(() => {
     const stored = getStoredMood(new Date());
     if (stored !== null) {
@@ -247,12 +347,14 @@ export default function MoodTab() {
       setSelectedMood(null);
       setLogged(false);
     }
+    checkAndSendMonthlyReview();
   }, []);
 
   const today = new Date();
   const weekData = buildWeekData(today, selectedMood);
   const streak = calcStreak(today, logged);
   const insight = generateInsight(weekData);
+  const monthlyData = getPrevMonthMoodData();
 
   const handleMoodSelect = (moodValue: number) => {
     const isUpdate = logged && selectedMood !== null;
@@ -270,23 +372,6 @@ export default function MoodTab() {
       },
     });
   };
-
-  if (activeGame === "breathing")
-    return <BreathingGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "bubbles")
-    return <BubblePopGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "memory")
-    return <MemoryGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "wordscramble")
-    return <WordScrambleGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "zentap")
-    return <ZenTapGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "squeezeball")
-    return <SqueezeBallGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "numberorder")
-    return <NumberOrderGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === "colorflood")
-    return <ColorFloodGame onBack={() => setActiveGame(null)} />;
 
   return (
     <div className="flex flex-col">
@@ -322,7 +407,7 @@ export default function MoodTab() {
           {t("howAreYouFeeling")}
         </h2>
         <p className="text-xs text-muted-foreground text-center mb-4">
-          {logged ? "Tap to change your mood" : "Tap to log today's mood"}
+          {logged ? "Tap to change your mood" : "Log today's mood"}
         </p>
 
         <div className="flex justify-around items-end">
@@ -376,7 +461,6 @@ export default function MoodTab() {
                 border: "1px solid oklch(0.90 0.025 285 / 0.4)",
               }}
             >
-              {/* Top row: emoji + logged label */}
               <div className="flex items-center justify-between px-4 py-3">
                 <div
                   className="flex items-center gap-2.5"
@@ -412,7 +496,6 @@ export default function MoodTab() {
                   Change
                 </button>
               </div>
-              {/* Quote strip */}
               <div
                 className="px-4 py-2.5 border-t"
                 style={{ borderColor: "oklch(0.88 0.03 285 / 0.5)" }}
@@ -491,56 +574,141 @@ export default function MoodTab() {
         <p className="text-sm text-foreground/80 leading-relaxed">{insight}</p>
       </div>
 
-      {/* Mind Break Games */}
-      <div className="mx-4 mb-6">
-        <div className="mb-3">
-          <h3 className="font-black text-base text-foreground">
-            Mind Break 🎮
-          </h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Take a breather with these calming games
-          </p>
-        </div>
-        <div
-          className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"
-          style={{ touchAction: "pan-x" }}
+      {/* Monthly Review Card */}
+      {monthlyData && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-4 mb-4 bg-card rounded-3xl p-5 shadow-card border border-border overflow-hidden"
+          data-ocid="mood.card"
         >
-          {GAMES.map((game, i) => (
+          <div
+            className="absolute inset-0 opacity-30 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.82 0.08 285), oklch(0.85 0.07 355), oklch(0.88 0.05 50))",
+            }}
+          />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">📊</span>
+              <div>
+                <h3 className="font-black text-sm text-foreground">
+                  {monthlyData.monthName} {monthlyData.year} Review
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Your last month's mood journey
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-2xl">
+                  {
+                    MOODS.reduce((best, m) =>
+                      Math.abs(m.value - monthlyData.avgMood) <
+                      Math.abs(best.value - monthlyData.avgMood)
+                        ? m
+                        : best,
+                    ).emoji
+                  }
+                </div>
+                <p className="text-[10px] font-bold text-muted-foreground mt-0.5">
+                  Avg Mood
+                </p>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="text-center">
+                <div className="text-xl font-black text-foreground">
+                  {monthlyData.daysLogged}
+                </div>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  Days Logged
+                </p>
+              </div>
+              <div className="h-10 w-px bg-border" />
+              <div className="text-center">
+                <div className="text-xl">
+                  {MOODS.find((m) => m.value === monthlyData.bestDay)?.emoji ??
+                    "😄"}
+                </div>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  Best Day
+                </p>
+              </div>
+            </div>
+
+            {/* Mood distribution */}
+            <div className="space-y-1.5">
+              {MOODS.slice()
+                .reverse()
+                .map((mood) => {
+                  const count = monthlyData.moodDist[mood.label] ?? 0;
+                  const pct =
+                    monthlyData.daysLogged > 0
+                      ? (count / monthlyData.daysLogged) * 100
+                      : 0;
+                  if (count === 0) return null;
+                  return (
+                    <div key={mood.label} className="flex items-center gap-2">
+                      <span className="text-sm w-5">{mood.emoji}</span>
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.7, ease: "easeOut" }}
+                          className="h-full rounded-full"
+                          style={{ background: mood.barColor }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-muted-foreground w-6 text-right">
+                        {count}d
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Games Section */}
+      <div className="mx-4 mb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xl">🎮</span>
+          <h3 className="font-black text-base text-foreground">Mind Games</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Refresh your mood, clear your head
+        </p>
+
+        <div
+          className="flex gap-3 overflow-x-auto pb-2"
+          style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+        >
+          {GAMES.map((game) => (
             <motion.button
               key={game.id}
-              type="button"
-              data-ocid={`mood.game.item.${i + 1}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-              onPointerDown={(e) => {
-                pointerStart.current = { x: e.clientX, y: e.clientY };
-              }}
-              onPointerMove={(e) => {
-                if (!pointerStart.current) return;
-                const dx = e.clientX - pointerStart.current.x;
-                const dy = e.clientY - pointerStart.current.y;
-                if (Math.sqrt(dx * dx + dy * dy) > 15)
-                  pointerStart.current = null;
-              }}
-              onPointerUp={(e) => {
-                if (!pointerStart.current) return;
-                const dx = e.clientX - pointerStart.current.x;
-                const dy = e.clientY - pointerStart.current.y;
-                if (Math.sqrt(dx * dx + dy * dy) < 20) setActiveGame(game.id);
-                pointerStart.current = null;
-              }}
+              data-ocid={`mood.${game.id}.button`}
               whileTap={{ scale: 0.95 }}
-              className="flex-shrink-0 w-36 rounded-2xl p-4 text-left shadow-card border border-white/40 hover:shadow-card-hover transition-all duration-200 active:scale-[0.97]"
-              style={{ background: game.gradient, touchAction: "manipulation" }}
+              onPointerDown={() => setActiveGame(game.id)}
+              className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 rounded-3xl border border-border"
+              style={{
+                width: 140,
+                minHeight: 90,
+                background: game.gradient,
+                touchAction: "manipulation",
+                padding: "14px 10px",
+              }}
             >
-              <span className="text-3xl block mb-2">{game.emoji}</span>
-              <p className="font-black text-sm text-foreground/90 leading-tight">
+              <span className="text-2xl">{game.emoji}</span>
+              <span className="text-xs font-black text-foreground text-center leading-tight">
                 {game.name}
-              </p>
-              <p className="text-[10px] text-foreground/60 mt-1 leading-snug font-medium">
-                {game.desc}
-              </p>
+              </span>
+              <span className="text-[10px] text-foreground/60 text-center">
+                {game.tagline}
+              </span>
             </motion.button>
           ))}
         </div>
@@ -559,6 +727,99 @@ export default function MoodTab() {
           caffeine.ai
         </a>
       </div>
+
+      {/* Game Overlay */}
+      <AnimatePresence>
+        {activeGame && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            data-ocid="mood.modal"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 50,
+              background: "oklch(var(--background))",
+              overflowY: "auto",
+            }}
+          >
+            <button
+              type="button"
+              data-ocid="mood.close_button"
+              onPointerDown={() => setActiveGame(null)}
+              className="flex items-center gap-1.5 font-bold text-sm text-foreground"
+              style={{
+                position: "absolute",
+                top: 48,
+                left: 16,
+                zIndex: 51,
+                touchAction: "manipulation",
+                background: "oklch(var(--card))",
+                border: "1px solid oklch(var(--border))",
+                borderRadius: "999px",
+                padding: "8px 16px",
+                boxShadow: "0 2px 8px oklch(0 0 0 / 0.08)",
+              }}
+            >
+              ← Back
+            </button>
+            {activeGame === "bubble" && (
+              <BubblePopGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "memory" && (
+              <MemoryGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "word" && (
+              <WordScrambleGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "breathe" && (
+              <BreathingGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "zen" && (
+              <ZenTapGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "color" && (
+              <ColorFloodGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "number" && (
+              <NumberOrderGame onBack={() => setActiveGame(null)} />
+            )}
+            {activeGame === "squeeze" && (
+              <SqueezeBallGame onBack={() => setActiveGame(null)} />
+            )}
+            {/* Floating Exit Game Button */}
+            <button
+              type="button"
+              data-ocid="mood.close_button"
+              onPointerDown={() => setActiveGame(null)}
+              style={{
+                position: "fixed",
+                bottom: 80,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 60,
+                touchAction: "manipulation",
+                background:
+                  "linear-gradient(135deg, oklch(0.62 0.22 15), oklch(0.55 0.24 340))",
+                color: "#fff",
+                border: "none",
+                borderRadius: "999px",
+                padding: "14px 32px",
+                fontSize: "16px",
+                fontWeight: "700",
+                minWidth: "200px",
+                boxShadow: "0 4px 20px oklch(0.55 0.24 15 / 0.45)",
+                cursor: "pointer",
+                letterSpacing: "0.02em",
+              }}
+            >
+              🚪 Game Chhodo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

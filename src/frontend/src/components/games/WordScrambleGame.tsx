@@ -154,7 +154,8 @@ export default function WordScrambleGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="wordscramble.close_button"
-          onClick={onBack}
+          onPointerDown={onBack}
+          style={{ touchAction: "manipulation" }}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
         >
           <ArrowLeft
@@ -177,7 +178,7 @@ export default function WordScrambleGame({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           data-ocid="wordscramble.secondary_button"
-          onClick={handleReset}
+          onPointerDown={handleReset}
           className="p-2 rounded-full bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors"
         >
           <RotateCcw
@@ -235,7 +236,7 @@ export default function WordScrambleGame({ onBack }: { onBack: () => void }) {
               <button
                 type="button"
                 data-ocid="wordscramble.primary_button"
-                onClick={handleNext}
+                onPointerDown={handleNext}
                 className={`px-8 py-3 rounded-2xl font-bold text-white bg-gradient-to-r ${levelColor} shadow-lg active:scale-95 transition-transform`}
               >
                 {state.gameComplete
@@ -299,7 +300,7 @@ export default function WordScrambleGame({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   data-ocid="wordscramble.submit_button"
-                  onClick={handleSubmit}
+                  onPointerDown={handleSubmit}
                   className={`px-5 py-3.5 rounded-2xl font-black text-white bg-gradient-to-br ${levelColor} shadow-md active:scale-95 transition-transform`}
                 >
                   <CheckCircle2 className="w-5 h-5" />
