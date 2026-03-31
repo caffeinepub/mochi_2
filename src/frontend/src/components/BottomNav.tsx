@@ -1,4 +1,12 @@
-import { Heart, Home, MessageCircle, Plus, User, Users } from "lucide-react";
+import {
+  Heart,
+  Home,
+  Lightbulb,
+  MessageCircle,
+  Plus,
+  User,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import type { Tab } from "../App";
 import { useTheme } from "../context/ThemeContext";
@@ -8,12 +16,14 @@ interface BottomNavProps {
   onTabChange: (tab: Tab) => void;
 }
 
+// 3 left | + (center) | 3 right
 const NAV_ITEMS: { id: Tab; icon: typeof Home; label: string }[] = [
   { id: "home", icon: Home, label: "Home" },
   { id: "friends", icon: Users, label: "Friends" },
-  { id: "post", icon: Plus, label: "Post" },
   { id: "chat", icon: MessageCircle, label: "Chat" },
+  { id: "post", icon: Plus, label: "Post" },
   { id: "mood", icon: Heart, label: "Mood" },
+  { id: "theories", icon: Lightbulb, label: "Theories" },
   { id: "profile", icon: User, label: "Me" },
 ];
 
@@ -32,7 +42,7 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
         boxShadow: "var(--nav-shadow)",
       }}
     >
-      <div className="flex items-end justify-around h-[68px] px-1 pb-1">
+      <div className="flex items-end justify-between h-[68px] px-2 pb-1">
         {NAV_ITEMS.map((tab) => {
           const Icon = tab.icon;
           const isPost = tab.id === "post";
@@ -46,20 +56,20 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 data-ocid="nav.post.button"
                 onClick={() => onTabChange("post")}
                 aria-label="Create post"
-                className="flex flex-col items-center justify-end pb-1 -mt-6"
+                className="flex-1 flex flex-col items-center justify-end pb-1 -mt-6"
               >
                 <motion.div
                   whileTap={{ scale: 0.88 }}
                   whileHover={{ scale: 1.08 }}
-                  className="w-14 h-14 rounded-full flex items-center justify-center post-btn-glow"
+                  className="w-12 h-12 rounded-full flex items-center justify-center post-btn-glow"
                   style={{
                     background:
                       "linear-gradient(135deg, oklch(0.78 0.20 5), oklch(0.72 0.18 290))",
                   }}
                 >
-                  <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
+                  <Icon className="w-5 h-5 text-white" strokeWidth={2.5} />
                 </motion.div>
-                <span className="text-[9px] font-bold mt-1 text-muted-foreground">
+                <span className="text-[8px] font-bold mt-0.5 text-muted-foreground">
                   Create
                 </span>
               </button>
@@ -72,12 +82,12 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               key={tab.id}
               data-ocid={`nav.${tab.id}.link`}
               onClick={() => onTabChange(tab.id)}
-              className="relative flex flex-col items-center justify-end gap-0.5 pb-1 px-2"
+              className="relative flex-1 flex flex-col items-center justify-end gap-0 pb-1"
             >
               {isActive && (
                 <motion.div
                   layoutId="nav-pill"
-                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-10 h-10 rounded-2xl -z-10 nav-pill-active"
+                  className="absolute -top-1 left-1/2 -translate-x-1/2 w-9 h-9 rounded-2xl -z-10 nav-pill-active"
                   style={{
                     background: isDark
                       ? "linear-gradient(135deg, oklch(0.78 0.20 5 / 0.22), oklch(0.72 0.18 290 / 0.25))"
@@ -90,18 +100,18 @@ export default function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
                 />
               )}
               <motion.div
-                animate={isActive ? { scale: 1.15, y: -1 } : { scale: 1, y: 0 }}
+                animate={isActive ? { scale: 1.12, y: -1 } : { scale: 1, y: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
               >
                 <Icon
-                  className={`w-5 h-5 transition-colors duration-200 ${
+                  className={`w-[18px] h-[18px] transition-colors duration-200 ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
               </motion.div>
               <span
-                className={`text-[9px] font-bold transition-colors duration-200 ${
+                className={`text-[8px] font-bold transition-colors duration-200 ${
                   isActive ? "text-primary" : "text-muted-foreground"
                 }`}
               >
