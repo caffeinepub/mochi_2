@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
 import {
@@ -25,6 +26,11 @@ import {
   loadNotifications,
   seedSampleNotifications,
 } from "../lib/notifications";
+import {
+  getFriends,
+  getSuggestedUsers,
+  sendFriendRequest,
+} from "../lib/userSystem";
 import NotificationsPanel from "./NotificationsPanel";
 import StoriesBar from "./StoriesBar";
 
@@ -273,6 +279,16 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
     refetch,
   } = useGetPostsByCategory(activeCategory);
   const [localPosts, setLocalPosts] = useState<LocalPost[]>(loadLocalPosts);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [sentFriendRequests, setSentFriendRequests] = useState<string[]>(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("mochi_friend_requests_sent") || "[]",
+      ) as string[];
+    } catch {
+      return [];
+    }
+  });
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [commentingPost, setCommentingPost] = useState<{
     title: string;
@@ -613,11 +629,25 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
         <button
           type="button"
           data-ocid="home.secondary_button"
-          onClick={() => refetch()}
+          onClick={async () => {
+            setIsRefreshing(true);
+            await refetch();
+            // Merge friend posts at top
+            setLocalPosts(() => {
+              const base = loadLocalPosts();
+              return base;
+            });
+            setTimeout(() => {
+              setIsRefreshing(false);
+              toast.success("Feed updated ✨");
+            }, 400);
+          }}
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          {isRefreshing ? "Updating..." : "Refresh"}
         </button>
       </div>
 
@@ -742,143 +772,208 @@ export default function HomeTab({ onSOS }: HomeTabProps) {
                 );
               })
             : localFiltered.map((post, i) => (
-                <AnimatePresence key={`local-${post.id}`}>
-                  {deletingId !== post.id && (
-                    <motion.div
-                      data-ocid={`post.item.${i + 1}`}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="card-elevated rounded-2xl p-4 mx-4 mb-3 relative group"
-                    >
-                      <div className="flex items-start gap-3">
-                        {(() => {
-                          const photo = localStorage.getItem(
-                            "mochi_profile_photo",
-                          );
-                          return photo ? (
-                            <img
-                              src={photo}
-                              alt="You"
-                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                              Me
+                <div key={`local-${post.id}`}>
+                  <AnimatePresence>
+                    {deletingId !== post.id && (
+                      <motion.div
+                        data-ocid={`post.item.${i + 1}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="card-elevated rounded-2xl p-4 mx-4 mb-3 relative group"
+                      >
+                        <div className="flex items-start gap-3">
+                          {(() => {
+                            const photo = localStorage.getItem(
+                              "mochi_profile_photo",
+                            );
+                            return photo ? (
+                              <img
+                                src={photo}
+                                alt="You"
+                                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-300 to-purple-300 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                Me
+                              </div>
+                            );
+                          })()}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-sm text-foreground">
+                                {post.id > 0 ? "You" : post.author}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                  CATEGORY_COLORS[post.category] ??
+                                  "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {CATEGORY_LABELS[post.category]}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {post.id > 0
+                                  ? "just now"
+                                  : (() => {
+                                      const mins = Math.floor(
+                                        (Date.now() - post.timestamp) / 60000,
+                                      );
+                                      return mins < 60
+                                        ? `${mins}m ago`
+                                        : `${Math.floor(mins / 60)}h ago`;
+                                    })()}
+                              </span>
                             </div>
-                          );
-                        })()}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-sm text-foreground">
-                              {post.id > 0 ? "You" : post.author}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
-                                CATEGORY_COLORS[post.category] ??
-                                "bg-gray-100 text-gray-700"
-                              }`}
-                            >
-                              {CATEGORY_LABELS[post.category]}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {post.id > 0
-                                ? "just now"
-                                : (() => {
-                                    const mins = Math.floor(
-                                      (Date.now() - post.timestamp) / 60000,
-                                    );
-                                    return mins < 60
-                                      ? `${mins}m ago`
-                                      : `${Math.floor(mins / 60)}h ago`;
-                                  })()}
-                            </span>
                           </div>
+                          {post.id > 0 && (
+                            <button
+                              type="button"
+                              data-ocid={`post.delete_button.${i + 1}`}
+                              onClick={() => handleDeletePost(post.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 active:scale-90"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                        {post.id > 0 && (
+                        {post.mediaUrl && post.mediaType === "image" && (
+                          <img
+                            src={post.mediaUrl}
+                            alt="post media"
+                            className="w-full rounded-xl mt-3 object-cover max-h-48"
+                          />
+                        )}
+                        {post.mediaUrl && post.mediaType === "video" && (
+                          <video
+                            src={post.mediaUrl}
+                            controls
+                            className="w-full rounded-xl mt-3 max-h-48"
+                          >
+                            <track kind="captions" />
+                          </video>
+                        )}
+                        {post.title && (
+                          <h3 className="font-bold text-sm mt-3 text-foreground">
+                            {post.title}
+                          </h3>
+                        )}
+                        {post.content && (
+                          <p className="text-sm text-foreground/80 mt-1 leading-relaxed line-clamp-3">
+                            {post.content}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
                           <button
                             type="button"
-                            data-ocid={`post.delete_button.${i + 1}`}
-                            onClick={() => handleDeletePost(post.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full text-rose-400 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 active:scale-90"
+                            data-ocid={`post.item.${i + 1}.toggle`}
+                            onClick={() => {
+                              const next = new Set(likedLocalPosts);
+                              if (next.has(post.id)) {
+                                next.delete(post.id);
+                              } else {
+                                next.add(post.id);
+                                addNotification({
+                                  type: "like",
+                                  text: "You liked a post ❤️",
+                                });
+                              }
+                              setLikedLocalPosts(next);
+                              localStorage.setItem(
+                                "mochi_liked_posts",
+                                JSON.stringify([...next]),
+                              );
+                            }}
+                            className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${likedLocalPosts.has(post.id) ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Heart
+                              className={`w-4 h-4 transition-transform ${likedLocalPosts.has(post.id) ? "fill-current scale-110" : ""}`}
+                            />
+                            {likedLocalPosts.has(post.id) ? 1 : 0}
                           </button>
-                        )}
-                      </div>
-                      {post.mediaUrl && post.mediaType === "image" && (
-                        <img
-                          src={post.mediaUrl}
-                          alt="post media"
-                          className="w-full rounded-xl mt-3 object-cover max-h-48"
-                        />
-                      )}
-                      {post.mediaUrl && post.mediaType === "video" && (
-                        <video
-                          src={post.mediaUrl}
-                          controls
-                          className="w-full rounded-xl mt-3 max-h-48"
-                        >
-                          <track kind="captions" />
-                        </video>
-                      )}
-                      {post.title && (
-                        <h3 className="font-bold text-sm mt-3 text-foreground">
-                          {post.title}
-                        </h3>
-                      )}
-                      {post.content && (
-                        <p className="text-sm text-foreground/80 mt-1 leading-relaxed line-clamp-3">
-                          {post.content}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
-                        <button
-                          type="button"
-                          data-ocid={`post.item.${i + 1}.toggle`}
-                          onClick={() => {
-                            const next = new Set(likedLocalPosts);
-                            if (next.has(post.id)) {
-                              next.delete(post.id);
-                            } else {
-                              next.add(post.id);
-                              addNotification({
-                                type: "like",
-                                text: "You liked a post ❤️",
-                              });
+                          <button
+                            type="button"
+                            data-ocid={`post.item.${i + 1}.secondary_button`}
+                            onPointerDown={() =>
+                              setCommentingPost({
+                                title: post.title || "Post",
+                                id: post.id,
+                              })
                             }
-                            setLikedLocalPosts(next);
-                            localStorage.setItem(
-                              "mochi_liked_posts",
-                              JSON.stringify([...next]),
-                            );
-                          }}
-                          className={`flex items-center gap-1.5 text-sm font-semibold transition-all ${likedLocalPosts.has(post.id) ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-                        >
-                          <Heart
-                            className={`w-4 h-4 transition-transform ${likedLocalPosts.has(post.id) ? "fill-current scale-110" : ""}`}
-                          />
-                          {likedLocalPosts.has(post.id) ? 1 : 0}
-                        </button>
-                        <button
-                          type="button"
-                          data-ocid={`post.item.${i + 1}.secondary_button`}
-                          onPointerDown={() =>
-                            setCommentingPost({
-                              title: post.title || "Post",
-                              id: post.id,
-                            })
-                          }
-                          className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-secondary transition-colors"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          {(localPostComments[post.id] ?? []).length}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-secondary transition-colors"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            {(localPostComments[post.id] ?? []).length}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  {/* People you may know - every 3rd post */}
+                  {(i + 1) % 3 === 0 &&
+                    (() => {
+                      const suggestions = getSuggestedUsers().slice(0, 3);
+                      if (suggestions.length === 0) return null;
+                      const hasFriends = getFriends().length > 0;
+                      if (hasFriends && suggestions.length === 0) return null;
+                      return (
+                        <div className="mx-4 mb-3 rounded-2xl p-3 card-elevated">
+                          <p className="text-xs font-bold text-muted-foreground mb-2.5 flex items-center gap-1">
+                            👥 People you may know
+                          </p>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {suggestions.map((user) => (
+                              <div
+                                key={user.username}
+                                className="flex-shrink-0 flex flex-col items-center gap-1.5 p-2.5 rounded-xl min-w-[80px]"
+                                style={{
+                                  background: isDark
+                                    ? "rgba(255,255,255,0.05)"
+                                    : "rgba(0,0,0,0.03)",
+                                }}
+                              >
+                                <div
+                                  className={`w-10 h-10 rounded-full bg-gradient-to-br ${user.avatarColor} flex items-center justify-center text-lg`}
+                                >
+                                  {user.emoji}
+                                </div>
+                                <p className="text-[10px] font-bold text-foreground text-center truncate w-full">
+                                  {user.displayName.split(" ")[0]}
+                                </p>
+                                {sentFriendRequests.includes(user.username) ? (
+                                  <span className="text-[9px] text-emerald-500 font-bold">
+                                    Sent ✓
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onPointerDown={() => {
+                                      sendFriendRequest(user.username);
+                                      setSentFriendRequests((prev) => [
+                                        ...prev,
+                                        user.username,
+                                      ]);
+                                      toast.success(
+                                        `Request sent to ${user.displayName}! 🎉`,
+                                      );
+                                    }}
+                                    className="px-2.5 py-1 rounded-full text-white text-[10px] font-bold"
+                                    style={{
+                                      background:
+                                        "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
+                                    }}
+                                  >
+                                    + Add
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                </div>
               ))}
         </AnimatePresence>
       )}

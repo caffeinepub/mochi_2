@@ -304,6 +304,16 @@
   border-radius: 9999px;
 }
 
+@keyframes story-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 /* Dark mode glow on post button */
 .dark .post-btn-glow {
   box-shadow: var(--glow-pink), 0 0 0 4px var(--post-btn-ring);

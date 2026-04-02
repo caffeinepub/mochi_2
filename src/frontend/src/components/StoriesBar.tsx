@@ -2,6 +2,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { type SimUser, getFriendsStories } from "../lib/userSystem";
 
 interface StoryTextOverlay {
   text: string;
@@ -303,6 +304,23 @@ export default function StoriesBar() {
   const viewingStory = viewingIdx !== null ? stories[viewingIdx] : null;
   const myStories = stories.filter((s) => s.username === "You");
   const totalSeenCount = myStories.reduce((acc, s) => acc + s.seenBy.length, 0);
+  const friendStories = getFriendsStories();
+  const [viewingFriendStory, setViewingFriendStory] = useState<
+    (typeof friendStories)[number] | null
+  >(null);
+  const [seenFriendStories, setSeenFriendStories] = useState<Set<string>>(
+    () => {
+      try {
+        return new Set(
+          JSON.parse(
+            localStorage.getItem("mochi_seen_friend_stories") || "[]",
+          ) as string[],
+        );
+      } catch {
+        return new Set();
+      }
+    },
+  );
 
   // Gradient preview class for text-only stories
   const previewGradient = AVATAR_GRADIENTS[0];
@@ -410,7 +428,58 @@ export default function StoriesBar() {
           </button>
         ))}
 
-        {stories.length === 0 && (
+        {/* Friend stories from real sim users */}
+        {friendStories.map((fs, idx) => {
+          const isSeen = seenFriendStories.has(fs.id);
+          return (
+            <button
+              type="button"
+              key={fs.id}
+              data-ocid={`stories.item.friend.${idx + 1}`}
+              onPointerDown={() => {
+                setViewingFriendStory(fs);
+                const next = new Set(seenFriendStories).add(fs.id);
+                setSeenFriendStories(next);
+                localStorage.setItem(
+                  "mochi_seen_friend_stories",
+                  JSON.stringify([...next]),
+                );
+              }}
+              className="flex flex-col items-center gap-1 flex-shrink-0"
+            >
+              <div className="relative">
+                <div
+                  className="rounded-full p-[2px]"
+                  style={{
+                    background: isSeen
+                      ? isDark
+                        ? "rgba(255,255,255,0.15)"
+                        : "rgba(0,0,0,0.1)"
+                      : "linear-gradient(135deg, #f857a6, #ff5858, #ffb347)",
+                    animation: isSeen
+                      ? "none"
+                      : "story-pulse 2s ease-in-out infinite",
+                  }}
+                >
+                  <div
+                    className={`w-[58px] h-[58px] rounded-full bg-gradient-to-br ${fs.user.avatarColor} flex items-center justify-center text-2xl border-2`}
+                    style={{ borderColor: isDark ? "rgb(10,10,20)" : "white" }}
+                  >
+                    {fs.user.emoji}
+                  </div>
+                </div>
+              </div>
+              <span className="text-[10px] font-semibold text-muted-foreground max-w-[64px] truncate">
+                {fs.user.displayName.split(" ")[0]}
+              </span>
+              <span className="text-[9px] text-muted-foreground/60">
+                {Math.floor((Date.now() - fs.createdAt) / 60000)}m
+              </span>
+            </button>
+          );
+        })}
+
+        {stories.length === 0 && friendStories.length === 0 && (
           <div className="flex items-center text-xs text-muted-foreground py-4 pl-2">
             No stories yet — add yours! ✨
           </div>
@@ -929,6 +998,70 @@ export default function StoriesBar() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Friend Story Viewer */}
+      <AnimatePresence>
+        {viewingFriendStory && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.92)" }}
+            onClick={() => setViewingFriendStory(null)}
+          >
+            <div
+              className="relative w-full max-w-sm mx-auto rounded-3xl overflow-hidden"
+              style={{ height: "75vh" }}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="presentation"
+            >
+              {/* Gradient background */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${viewingFriendStory.user.avatarColor} opacity-80`}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10">
+                <span className="text-7xl mb-4">
+                  {viewingFriendStory.emoji}
+                </span>
+                <p className="text-white text-xl font-bold text-center leading-relaxed">
+                  {viewingFriendStory.text}
+                </p>
+              </div>
+              {/* Header */}
+              <div className="absolute top-4 left-4 right-4 flex items-center gap-2 z-20">
+                <div
+                  className={`w-9 h-9 rounded-full bg-gradient-to-br ${viewingFriendStory.user.avatarColor} flex items-center justify-center text-lg border-2 border-white/40`}
+                >
+                  {viewingFriendStory.user.emoji}
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm">
+                    {viewingFriendStory.user.displayName}
+                  </p>
+                  <p className="text-white/70 text-[10px]">
+                    {Math.floor(
+                      (Date.now() - viewingFriendStory.createdAt) / 60000,
+                    )}
+                    m ago
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewingFriendStory(null)}
+                  className="ml-auto w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"
+                >
+                  <Trash2 className="w-4 h-4 text-white hidden" />
+                  <span className="text-white font-bold text-base">
+                    &times;
+                  </span>
+                </button>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

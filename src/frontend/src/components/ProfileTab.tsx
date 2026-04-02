@@ -6,6 +6,7 @@ import {
   Award,
   Camera,
   Check,
+  Copy,
   Download,
   Edit3,
   Globe,
@@ -533,6 +534,28 @@ export default function ProfileTab() {
         <p className="text-xs text-muted-foreground">
           {isLoggedIn ? "Verified member ✓" : "Anonymous member"}
         </p>
+
+        {isLoggedIn && principalStr && (
+          <button
+            type="button"
+            data-ocid="profile.copy_id.button"
+            onClick={() => {
+              navigator.clipboard.writeText(principalStr);
+              toast.success("Mochi ID copy ho gaya! Share karo dosto se 🎯");
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+          >
+            <Copy className="w-3 h-3 text-muted-foreground" />
+            <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[140px]">
+              {principalStr.slice(0, 12)}…
+            </span>
+          </button>
+        )}
+        {isLoggedIn && (
+          <p className="text-[10px] text-muted-foreground/60 text-center max-w-[200px]">
+            Yeh hai tera Mochi ID — doston ko share karo 🎯
+          </p>
+        )}
 
         <div className="mt-1.5 max-w-[240px] text-center">
           {bio ? (

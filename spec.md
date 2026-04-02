@@ -1,30 +1,31 @@
-# Mochi — Sound + Games Fix + Install Button
+# Mochi — Real Social Chat System
 
 ## Current State
-- FloatingMochi: tap-to-grow-and-burst animation exists but no sound
-- Games: most use onClick which has 300ms delay on mobile causing unresponsive feel; MemoryGame card flips use onClick
-- ProfileTab: no app install option
-- No PWA manifest.json exists
+FriendsTab and ChatTab are using dummy/hardcoded AI placeholder users. There is no real user-to-user interaction. The backend has basic profile save/get and sendPrivateMessage, but no friend request system, no username search, and no persistent friend connections between real users.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Sound effects in FloatingMochi: small 'pip' tone on each tap, loud BOOM sound on burst (Web Audio API)
-- Install App button in ProfileTab below the Language section (PWA beforeinstallprompt)
-- manifest.json in public/ for PWA support
+- Unique username system per user (auto-generated on first login, editable)
+- Search users by username or profile ID
+- Friend request: send, accept, reject
+- Friends list showing confirmed friends only
+- One-to-one chat between friends (messages saved in backend)
+- Online/offline status tracking (last-seen timestamp based)
+- Notifications for friend requests and acceptances
 
 ### Modify
-- MemoryGame: switch card flip handler from onClick to onPointerDown to eliminate 300ms tap delay on mobile; add touchAction: 'manipulation' to all buttons
-- ZenTapGame: already uses onPointerDown but ensure shapes have touchAction: 'none'
-- All game back/restart/action buttons: ensure onPointerDown or touchAction: manipulation is used consistently
-- BubblePopGame: already working, verify no regressions
+- FriendsTab: replace dummy users with real search + friend request flow + friends list
+- ChatTab: replace dummy AI chat rooms with real DMs between confirmed friends
+- Profile: show own unique username/ID that others can search with
+- Backend: extend to support friend requests, friend list queries, username index
 
 ### Remove
-- Nothing
+- Fake/placeholder friend entries and dummy chat rooms in Friends and Chat tabs
 
 ## Implementation Plan
-1. FloatingMochi.tsx: add playTapSound() (short sine pip) and playBurstSound() (loud BOOM) using Web Audio API; call playTapSound on each tap, playBurstSound in triggerBurst()
-2. MemoryGame.tsx: change handleFlip trigger from onClick to onPointerDown; add touchAction: 'manipulation' style to all buttons
-3. ProfileTab.tsx: add usePWAInstall hook (listens for beforeinstallprompt), show Install App card/button below Language section only when prompt is available
-4. Create src/frontend/public/manifest.json with app name, icons, theme_color, display: standalone
-5. Add <link rel="manifest"> in index.html if not present
+1. Backend: Add username registry (username → Principal map), friend request storage (pending/accepted), update Profile to include username field
+2. Backend: Add APIs: searchUserByUsername, sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getFriendRequests (incoming), getFriends, updateLastSeen, getOnlineStatus
+3. Frontend FriendsTab: Search bar to find users by username → show profile card → send friend request button. Incoming requests section with accept/reject. Friends list.
+4. Frontend ChatTab: Show list of confirmed friends. Tap to open DM. Messages load from backend via getPrivateMessages. Send message saves to backend via sendPrivateMessage.
+5. Frontend Profile: Display own username prominently with copy button so user can share it.

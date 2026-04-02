@@ -21,9 +21,8 @@ import {
 } from "../hooks/useQueries";
 import { callGemini } from "../lib/gemini";
 import AIChat from "./AIChat";
-import FriendsTab from "./FriendsTab";
 
-type SubTab = "rooms" | "mentors" | "ai" | "friends";
+type SubTab = "rooms" | "mentors" | "ai";
 
 const ROOMS = [
   {
@@ -117,7 +116,6 @@ const MENTORS = [
 
 type Mentor = (typeof MENTORS)[0];
 
-// Per-room message pools
 const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
   relationship: [
     {
@@ -165,27 +163,8 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       author: "CalmHarbor",
     },
     {
-      content: "love bombing is real and i wish i had recognized it sooner",
-      author: "RiverFlow__",
-    },
-    {
       content: "sending everyone here healing and love 💕",
       author: "SoftMorning",
-    },
-    {
-      content:
-        "genuinely cannot stop thinking about someone who doesn't even know i exist lol kill me",
-      author: "AutumnLeaf_",
-    },
-    {
-      content:
-        "just needed to say — it does get better after a breakup. took me 6 months but here i am",
-      author: "NewChapter99",
-    },
-    {
-      content:
-        "my partner doesn't understand my anxiety at all and it makes me feel so alone in this relationship",
-      author: "QuietStorm__",
     },
   ],
   mentalHealth: [
@@ -224,21 +203,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       author: "CalmBreeze",
     },
     {
-      content:
-        "the hardest part is when people tell you to just 'think positive' like okay thanks",
-      author: "StormClouds_",
-    },
-    {
-      content:
-        "finally told my mom about my depression. she cried and hugged me. i wasn't expecting that",
-      author: "TenderHeart",
-    },
-    {
-      content:
-        "does anyone else feel guilty for having a bad day even when 'nothing is wrong'?",
-      author: "MistyMorning",
-    },
-    {
       content: "3am thoughts hit different. anyone else awake rn?",
       author: "NightBloom",
     },
@@ -246,11 +210,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       content:
         "six months clean from self harm. small wins matter. you can get through this",
       author: "RisingPhoenix",
-    },
-    {
-      content:
-        "my anxiety tells me everything is wrong but also nothing specific. its so frustrating",
-      author: "WavesCrash",
     },
     {
       content:
@@ -263,11 +222,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       content:
         "literally cried over my exam results today. felt like all that studying meant nothing",
       author: "BlueBook_",
-    },
-    {
-      content:
-        "anyone else feel like they're the only one who doesn't understand the material?",
-      author: "PencilDust",
     },
     {
       content: "update from last week: i passed!! barely, but i passed 😭🎉",
@@ -285,26 +239,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
     },
     {
       content:
-        "comparison culture in college is so toxic. everyone pretending they don't study then acing everything",
-      author: "TiredStudent",
-    },
-    {
-      content:
-        "taking a gap year was the best decision of my life for anyone considering it",
-      author: "FreeRange22",
-    },
-    {
-      content:
-        "can't focus at all lately. been staring at the same page for an hour",
-      author: "FoggyHead_",
-    },
-    {
-      content:
-        "my professor actually pulled me aside to check if I was okay. didn't expect to cry but here we are",
-      author: "NotOkayKing",
-    },
-    {
-      content:
         "pomodoro technique changed my study game completely if anyone needs tips",
       author: "FocusMachine",
     },
@@ -312,11 +246,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       content:
         "first gen college student here — sometimes the imposter syndrome is unbearable",
       author: "ClimbingUp__",
-    },
-    {
-      content:
-        "dropped a class today and felt relief not failure. sometimes thats the right move",
-      author: "BetterPath__",
     },
     {
       content:
@@ -330,8 +259,7 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       author: "CrossroadKid",
     },
     {
-      content:
-        "got rejected from my 3rd interview this week 😭 starting to think maybe im the problem",
+      content: "got rejected from my 3rd interview this week 😭",
       author: "HopeStillHere",
     },
     {
@@ -340,37 +268,11 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       author: "SuccessStory__",
     },
     {
-      content: "my boss is driving me insane someone help",
-      author: "ToxicWorkplace",
-    },
-    {
-      content:
-        "should I quit my toxic job or just push through and save money first?",
-      author: "StuckInPlace",
-    },
-    {
-      content:
-        "imposter syndrome in my new job is wild. everyone seems so much more competent than me",
+      content: "imposter syndrome in my new job is wild",
       author: "NewKidAtWork",
     },
     {
-      content:
-        "degree meant nothing for my job search. 6 months of rejection then got hired through a connection",
-      author: "RealTalk99",
-    },
-    {
-      content:
-        "my passion and my paycheck are two completely different things and it's lowkey depressing",
-      author: "DreamVsReality",
-    },
-    {
-      content:
-        "anyone made a major career switch in their late 20s? how do you deal with starting over?",
-      author: "NewChapterNow",
-    },
-    {
-      content:
-        "work-life balance does not exist at my company. I work evenings and weekends and nobody notices",
+      content: "work-life balance does not exist at my company",
       author: "BurnedOutBro",
     },
     {
@@ -382,15 +284,6 @@ const ROOM_MESSAGES: Record<string, { content: string; author: string }[]> = {
       content:
         "linkedin is so exhausting. everyone is thriving and I'm just trying to survive",
       author: "ScrollingTired",
-    },
-    {
-      content:
-        "asked for a raise after 2 years, got told 'maybe next quarter' for the 3rd time",
-      author: "Undervalued__",
-    },
-    {
-      content: "freelancing is lonely but at least my boss doesn't suck lol",
-      author: "SoloCreator__",
     },
   ],
 };
@@ -406,16 +299,6 @@ const SIM_USERNAMES = [
   "NightOwl",
   "RiverFlow",
   "SoftMorning",
-  "EmptyCanvas",
-  "HealingSlowly",
-  "TenderHeart",
-  "MistyMorning",
-  "NightBloom",
-  "BlueBook",
-  "PencilDust",
-  "FocusMachine",
-  "CrossroadKid",
-  "SoloCreator",
 ];
 
 function getRoomKey(id: string): string {
@@ -430,16 +313,12 @@ function getRoomKey(id: string): string {
   return "mentalHealth";
 }
 
-// ─── Mentor response engine ───────────────────────────────────────────────────
-
 interface MentorMessage {
   id: string;
   text: string;
   isOwn: boolean;
   edited?: boolean;
 }
-
-// ─── ChatMessageBubble with edit/delete ───────────────────────────────────────
 
 function ChatMessageBubble({
   id,
@@ -514,7 +393,6 @@ function ChatMessageBubble({
           </motion.div>
         )}
       </AnimatePresence>
-
       <div className="flex flex-col items-end gap-0.5 max-w-[80%]">
         {editing ? (
           <div className="flex flex-col gap-1 w-full">
@@ -574,31 +452,29 @@ function ChatMessageBubble({
 
 function getMentorSystemPrompt(mentor: Mentor): string {
   if (mentor.theme === "mentalHealth")
-    return "You are Dr. Priya, a warm and empathetic therapist. You specialize in mental health, anxiety, depression, and emotional wellness for young adults. You respond in a caring, non-judgmental way. Ask follow-up questions to understand the user better. Keep responses to 2-4 sentences. Never give generic advice — always respond specifically to what the user said. You sometimes mix in light Hinglish phrases naturally.";
+    return "You are Dr. Priya, a warm empathetic therapist. Specialize in mental health for young adults. 2-4 sentence responses. Specific to what the user said. Sometimes mix in light Hinglish naturally.";
   if (mentor.theme === "career")
-    return "You are Arjun, an energetic career coach for young adults. You give practical, no-nonsense career advice on job hunting, workplace issues, career confusion, and professional growth. Keep responses to 2-4 sentences. Always respond specifically to what the user says — give real, actionable advice. You sometimes mix in light Hinglish phrases naturally.";
+    return "You are Arjun, an energetic career coach for young adults. Give practical, actionable advice. 2-4 sentences. Respond specifically to what the user says. Light Hinglish naturally.";
   if (mentor.theme === "relationship")
-    return "You are Sarah, a compassionate relationship counselor. You help young adults navigate romantic relationships, friendships, family dynamics, and communication challenges. Keep responses to 2-4 sentences. Be warm and empathetic, ask follow-up questions. Always respond specifically to what the user said.";
+    return "You are Sarah, a compassionate relationship counselor. Warm, empathetic, ask follow-up questions. 2-4 sentences. Respond specifically.";
   if (mentor.theme === "studies")
-    return "You are Rohan, a relatable and practical study coach. You help students with academic stress, exam prep, time management, and study strategies. Keep responses energetic and motivating, 2-4 sentences. Give specific, practical advice based on exactly what the user says. You sometimes mix in light Hinglish naturally.";
-  return "You are a warm, empathetic counselor. Respond thoughtfully and specifically to what the user says. Keep responses to 2-4 sentences.";
+    return "You are Rohan, a relatable study coach. Energetic, motivating, practical. 2-4 sentences. Specific advice. Light Hinglish.";
+  return "You are a warm empathetic counselor. Respond thoughtfully and specifically. 2-4 sentences.";
 }
 
-// ─── MentorChat Component ──────────────────────────────────────────────────────────────────────────────
-
 function getWelcomeBackMessage(mentor: Mentor, lastUserMsg?: string): string {
-  const topicHint = lastUserMsg
+  const hint = lastUserMsg
     ? ` Last time you were sharing about "${lastUserMsg.split(" ").slice(0, 5).join(" ")}..."`
     : "";
   if (mentor.theme === "mentalHealth")
-    return `Hey, welcome back! ${topicHint} How are you feeling today?`;
+    return `Hey, welcome back!${hint} How are you feeling today?`;
   if (mentor.theme === "career")
-    return `Hey! Good to see you again. ${topicHint} Ready to keep working through things?`;
+    return `Hey! Good to see you again.${hint} Ready to keep working through things?`;
   if (mentor.theme === "relationship")
-    return `Welcome back! ${topicHint} I'm here whenever you're ready to continue.`;
+    return `Welcome back!${hint} I'm here whenever you're ready to continue.`;
   if (mentor.theme === "studies")
-    return `Hey again! ${topicHint} What's happening today?`;
-  return `Welcome back!${topicHint} What's on your mind?`;
+    return `Hey again!${hint} What's happening today?`;
+  return `Welcome back!${hint} What's on your mind?`;
 }
 
 function MentorChat({
@@ -606,9 +482,7 @@ function MentorChat({
   onBack,
 }: { mentor: Mentor; onBack: () => void }) {
   const storageKey = `mochi_mentor_${mentor.id}`;
-  const { theme: _theme } = useTheme();
 
-  // Full history for context -- persisted in localStorage
   const [allHistory, setAllHistory] = useState<MentorMessage[]>(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -622,7 +496,6 @@ function MentorChat({
     return [];
   });
 
-  // Display messages -- only current session
   const [messages, setMessages] = useState<MentorMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -633,7 +506,6 @@ function MentorChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, isTyping]);
 
-  // Save allHistory whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(allHistory.slice(-80)));
@@ -642,7 +514,6 @@ function MentorChat({
     }
   }, [allHistory, storageKey]);
 
-  // On mount: show welcome-back greeting if returning user
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
     if (allHistory.length > 0) {
@@ -662,7 +533,6 @@ function MentorChat({
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || isTyping) return;
-
     const userMsg: MentorMessage = {
       id: `u-${Date.now()}`,
       text: trimmed,
@@ -672,25 +542,23 @@ function MentorChat({
     setAllHistory((prev) => [...prev, userMsg]);
     setInput("");
     setIsTyping(true);
-
     const hist = [...allHistory, userMsg];
     const history = hist.slice(-10).map((m) => ({
       role: (m.isOwn ? "user" : "model") as "user" | "model",
       text: m.text,
     }));
-    const systemPrompt = getMentorSystemPrompt(mentor);
-
-    const reply = await callGemini(systemPrompt, history, trimmed);
+    const reply = await callGemini(
+      getMentorSystemPrompt(mentor),
+      history,
+      trimmed,
+    );
     const fallbacks: Record<string, string> = {
       mentalHealth: "I'm here for you. Tell me more about what's going on 💜",
-      career:
-        "I'm listening! Tell me more about what's happening with your career 💼",
-      relationship:
-        "I'm here with you. What else can you share about the situation? 💕",
+      career: "I'm listening! Tell me more about what's happening 💼",
+      relationship: "I'm here with you. What else can you share? 💕",
       studies: "I got you! Tell me more about what's going on academically 📚",
     };
-    const replyText =
-      reply ?? fallbacks[mentor.theme] ?? "I'm here for you. Tell me more 💜";
+    const replyText = reply ?? fallbacks[mentor.theme] ?? "I'm here for you 💜";
     const replyMsg: MentorMessage = {
       id: `m-${Date.now()}`,
       text: replyText,
@@ -757,7 +625,6 @@ function MentorChat({
           End-to-end encrypted
         </span>
       </div>
-
       <div
         className="flex-1 overflow-y-auto px-4 py-3 space-y-2"
         data-ocid="mentor_chat.panel"
@@ -801,7 +668,6 @@ function MentorChat({
             )}
           </motion.div>
         ))}
-
         <AnimatePresence>
           {isTyping && (
             <motion.div
@@ -828,7 +694,6 @@ function MentorChat({
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
-
       <div className="flex gap-2 px-4 py-3 bg-background border-t border-border">
         <Input
           data-ocid="mentor_chat.input"
@@ -857,8 +722,6 @@ function MentorChat({
   );
 }
 
-// ─── ChatRoom Component ───────────────────────────────────────────────────────
-
 function ChatRoom({
   room,
   onBack,
@@ -870,7 +733,6 @@ function ChatRoom({
   const roomKey = getRoomKey(String(room.id));
   const pool = ROOM_MESSAGES[roomKey] ?? ROOM_MESSAGES.mentalHealth;
 
-  // Sim state
   const [simMessages, setSimMessages] = useState(() =>
     pool.slice(0, 8).map((m, i) => ({ ...m, id: `sim-init-${i}` })),
   );
@@ -886,10 +748,9 @@ function ChatRoom({
   const [onlineCount, setOnlineCount] = useState(room.members);
   const [simTypingUser, setSimTypingUser] = useState<string | null>(null);
 
-  // Fluctuate online count
   useEffect(() => {
     const interval = setInterval(() => {
-      const delta = Math.floor(Math.random() * 4) + 2; // 2-5
+      const delta = Math.floor(Math.random() * 4) + 2;
       const sign = Math.random() > 0.5 ? 1 : -1;
       setOnlineCount((prev) =>
         Math.max(room.members - 20, prev + sign * delta),
@@ -898,11 +759,10 @@ function ChatRoom({
     return () => clearInterval(interval);
   }, [room.members]);
 
-  // Simulate live messages
   useEffect(() => {
-    if (messages.length > 0) return; // only simulate when no backend messages
+    if (messages.length > 0) return;
     const scheduleNext = () => {
-      const delay = 6000 + Math.random() * 9000; // 6-15s
+      const delay = 6000 + Math.random() * 9000;
       return setTimeout(() => {
         const randomMsg = pool[Math.floor(Math.random() * pool.length)];
         const randomUser =
@@ -924,12 +784,10 @@ function ChatRoom({
         );
       }, delay);
     };
-
     let timer = scheduleNext();
-    const requeue = () => {
+    const interval = setInterval(() => {
       timer = scheduleNext();
-    };
-    const interval = setInterval(requeue, 16000);
+    }, 16000);
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -967,16 +825,22 @@ function ChatRoom({
       ),
     );
   };
-
   const handleDeleteUserMsg = (id: string) => {
     setUserMessages((prev) => prev.filter((m) => m.id !== id));
   };
 
   const displayMessages =
     messages.length > 0
-      ? [...messages, ...userMessages]
+      ? [
+          ...messages.map((m, i) => ({
+            id: String(i),
+            content: m.content,
+            author: "Anonymous",
+            isOwn: false,
+          })),
+          ...userMessages,
+        ]
       : [...simMessages, ...userMessages];
-  const isBackend = messages.length > 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
@@ -1005,19 +869,14 @@ function ChatRoom({
           End-to-end encrypted
         </span>
       </div>
-
       <div
         className="flex-1 overflow-y-auto px-4 py-3 space-y-2"
         data-ocid="chat.panel"
       >
         {displayMessages.map((msg, i) => {
           const isOwn = (msg as { isOwn?: boolean }).isOwn === true;
-          const key = isBackend ? String(i) : ((msg as { id: string }).id ?? i);
-          const author = isOwn
-            ? "You"
-            : isBackend
-              ? "Anonymous"
-              : (msg as { author: string }).author;
+          const key = (msg as { id?: string }).id ?? String(i);
+          const author = isOwn ? "You" : (msg as { author: string }).author;
           const msgEdited = (msg as { edited?: boolean }).edited;
           const msgId = (msg as { id?: string }).id ?? String(i);
           return (
@@ -1038,19 +897,15 @@ function ChatRoom({
                 />
               ) : (
                 <div className="max-w-[75%] px-3 py-2 rounded-2xl text-sm font-medium bg-muted text-foreground rounded-bl-sm">
-                  {!isOwn && (
-                    <p className="text-[10px] font-bold text-muted-foreground mb-0.5">
-                      {author}
-                    </p>
-                  )}
+                  <p className="text-[10px] font-bold text-muted-foreground mb-0.5">
+                    {author}
+                  </p>
                   {msg.content}
                 </div>
               )}
             </motion.div>
           );
         })}
-
-        {/* Typing indicator */}
         <AnimatePresence>
           {simTypingUser && (
             <motion.div
@@ -1081,7 +936,6 @@ function ChatRoom({
         </AnimatePresence>
         <div ref={messagesEndRef} />
       </div>
-
       <div className="flex gap-2 px-4 py-3 bg-background border-t border-border">
         <Input
           data-ocid="chat.input"
@@ -1109,8 +963,6 @@ function ChatRoom({
   );
 }
 
-// ─── TabBar ───────────────────────────────────────────────────────────────────
-
 function TabBar({
   active,
   onChange,
@@ -1119,7 +971,6 @@ function TabBar({
     { id: "rooms", label: "Chat Rooms" },
     { id: "mentors", label: "Mentors" },
     { id: "ai", label: "Mochi AI" },
-    { id: "friends", label: "Friends" },
   ];
   return (
     <div className="flex mx-4 mb-4 bg-muted rounded-2xl p-1">
@@ -1142,8 +993,6 @@ function TabBar({
     </div>
   );
 }
-
-// ─── Main ChatTab ─────────────────────────────────────────────────────────────
 
 export default function ChatTab() {
   const [subTab, setSubTab] = useState<SubTab>("rooms");
@@ -1276,7 +1125,6 @@ export default function ChatTab() {
             ))}
           </motion.div>
         )}
-        {subTab === "friends" && <FriendsTab />}
       </AnimatePresence>
       <div className="pb-6" />
     </div>
