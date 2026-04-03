@@ -17,7 +17,7 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { useGetCallerProfile, useSaveProfile } from "./hooks/useQueries";
 
-const APP_VERSION = "55";
+const APP_VERSION = "58";
 
 export type Tab =
   | "home"
@@ -82,11 +82,7 @@ function getSlideVariants(dir: number) {
 }
 
 function UpdateBanner({ onClose }: { onClose: () => void }) {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 8000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
+  // No auto-dismiss — banner stays until user acts
   return (
     <motion.div
       data-ocid="update.panel"
@@ -251,7 +247,19 @@ function AppContent() {
         )}
       </AnimatePresence>
 
-      <FloatingMochi />
+      {/* FloatingMochi — always rendered last so it's on top of everything */}
+      <div
+        style={{
+          position: "fixed",
+          zIndex: 9999,
+          pointerEvents: "none",
+          inset: 0,
+          maxWidth: 430,
+          margin: "0 auto",
+        }}
+      >
+        <FloatingMochi />
+      </div>
       <Toaster position="top-center" />
     </div>
   );

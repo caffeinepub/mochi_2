@@ -6,7 +6,7 @@ async function doRequest(
   history: { role: "user" | "model"; text: string }[],
   userMessage: string,
   imageBase64?: string | null,
-  timeoutMs = 20000,
+  timeoutMs = 25000,
   model = "openai-large",
 ): Promise<string | null> {
   const controller = new AbortController();
@@ -53,7 +53,8 @@ async function doRequest(
     clearTimeout(timer);
     if (!res.ok) return null;
     const text = await res.text();
-    return text ? text.trim() : null;
+    const trimmed = text ? text.trim() : null;
+    return trimmed && trimmed.length > 10 ? trimmed : null;
   } catch {
     clearTimeout(timer);
     return null;
@@ -72,10 +73,10 @@ export async function callGemini(
     history,
     userMessage,
     imageBase64,
-    20000,
+    25000,
     "openai-large",
   );
-  if (result && result.length > 5) return result;
+  if (result && result.length > 10) return result;
 
   // Retry with smaller model, no history
   const result2 = await doRequest(
@@ -83,10 +84,22 @@ export async function callGemini(
     [],
     userMessage,
     imageBase64,
-    15000,
+    20000,
     "openai",
   );
-  if (result2 && result2.length > 5) return result2;
+  if (result2 && result2.length > 10) return result2;
+
+  // Final retry after short delay
+  await new Promise((r) => setTimeout(r, 2000));
+  const result3 = await doRequest(
+    systemPrompt,
+    [],
+    userMessage,
+    imageBase64,
+    20000,
+    "openai",
+  );
+  if (result3 && result3.length > 10) return result3;
 
   return null;
 }

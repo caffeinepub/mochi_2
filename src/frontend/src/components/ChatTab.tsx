@@ -452,14 +452,14 @@ function ChatMessageBubble({
 
 function getMentorSystemPrompt(mentor: Mentor): string {
   if (mentor.theme === "mentalHealth")
-    return "You are Dr. Priya, a warm empathetic therapist. Specialize in mental health for young adults. 2-4 sentence responses. Specific to what the user said. Sometimes mix in light Hinglish naturally.";
+    return "You are Dr. Priya, a warm therapist. You talk like a real person texting, not a robot. 2-3 short sentences. React specifically to what was said. Mix light Hinglish naturally. Never start with 'I understand' or 'I hear you'. No 'as an AI'. Just be present and real.";
   if (mentor.theme === "career")
-    return "You are Arjun, an energetic career coach for young adults. Give practical, actionable advice. 2-4 sentences. Respond specifically to what the user says. Light Hinglish naturally.";
+    return "You are Arjun, an energetic career coach. Super practical, short replies (2-3 sentences). Respond to exactly what the user said. Light Hinglish. No filler phrases like 'great question'. Direct and actionable.";
   if (mentor.theme === "relationship")
-    return "You are Sarah, a compassionate relationship counselor. Warm, empathetic, ask follow-up questions. 2-4 sentences. Respond specifically.";
+    return "You are Sarah, a relationship counselor who texts like a caring friend. 2-3 sentences max. Respond to the specific situation. Warm but direct. No 'I understand how you feel'. Mix in light Hinglish.";
   if (mentor.theme === "studies")
-    return "You are Rohan, a relatable study coach. Energetic, motivating, practical. 2-4 sentences. Specific advice. Light Hinglish.";
-  return "You are a warm empathetic counselor. Respond thoughtfully and specifically. 2-4 sentences.";
+    return "You are Rohan, a relatable study coach. 2-3 short sentences. Respond to exactly what the user shared. Motivating but real — no hollow positivity. Light Hinglish energy.";
+  return "You are a warm empathetic counselor who texts like a real friend. 2-3 sentences, specific to what was said. No filler phrases.";
 }
 
 function getWelcomeBackMessage(mentor: Mentor, lastUserMsg?: string): string {
@@ -499,6 +499,7 @@ function MentorChat({
   const [messages, setMessages] = useState<MentorMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on change
@@ -532,7 +533,7 @@ function MentorChat({
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || isTyping) return;
+    if (!trimmed || isTyping || sending) return;
     const userMsg: MentorMessage = {
       id: `u-${Date.now()}`,
       text: trimmed,
@@ -541,7 +542,9 @@ function MentorChat({
     setMessages((prev) => [...prev, userMsg]);
     setAllHistory((prev) => [...prev, userMsg]);
     setInput("");
+    // Show typing indicator immediately
     setIsTyping(true);
+    setSending(true);
     const hist = [...allHistory, userMsg];
     const history = hist.slice(-10).map((m) => ({
       role: (m.isOwn ? "user" : "model") as "user" | "model",
@@ -567,6 +570,7 @@ function MentorChat({
     setMessages((p) => [...p, replyMsg]);
     setAllHistory((p) => [...p, replyMsg]);
     setIsTyping(false);
+    setSending(false);
   };
 
   const handleEditMsg = (id: string, newText: string) => {
@@ -702,20 +706,24 @@ function MentorChat({
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Share what's on your mind..."
           className="rounded-full text-sm"
-          disabled={isTyping}
+          disabled={isTyping || sending}
         />
         <button
           type="button"
           data-ocid="mentor_chat.submit_button"
           onClick={handleSend}
-          disabled={!input.trim() || isTyping}
+          disabled={!input.trim() || isTyping || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center text-white transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
           style={{
             background:
               "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
           }}
         >
-          <Send className="w-4 h-4" />
+          {sending ? (
+            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>
@@ -727,6 +735,7 @@ function ChatRoom({
   onBack,
 }: { room: (typeof ROOMS)[0]; onBack: () => void }) {
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { data: messages = [] } = useGetChatMessages(room.id);
   const addMessage = useAddChatMessage();
@@ -797,12 +806,13 @@ function ChatRoom({
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [simMessages.length, messages.length, simTypingUser]);
+  }, [simMessages.length, messages.length, userMessages.length, simTypingUser]);
 
   const handleSend = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || sending) return;
     const msgContent = message.trim();
     setMessage("");
+    setSending(true);
     setUserMessages((prev) => [
       ...prev,
       {
@@ -814,7 +824,10 @@ function ChatRoom({
     ]);
     addMessage.mutate(
       { category: room.id, content: msgContent },
-      { onError: () => {} },
+      {
+        onSuccess: () => setSending(false),
+        onError: () => setSending(false),
+      },
     );
   };
 
@@ -944,19 +957,24 @@ function ChatRoom({
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Share your thoughts..."
           className="rounded-full text-sm"
+          disabled={sending}
         />
         <button
           type="button"
           data-ocid="chat.submit_button"
           onClick={handleSend}
-          disabled={!message.trim()}
+          disabled={!message.trim() || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center text-white transition-all active:scale-95 disabled:opacity-50 flex-shrink-0"
           style={{
             background:
               "linear-gradient(135deg, oklch(0.72 0.11 355), oklch(0.62 0.10 268))",
           }}
         >
-          <Send className="w-4 h-4" />
+          {sending ? (
+            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </button>
       </div>
     </div>

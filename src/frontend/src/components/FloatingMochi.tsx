@@ -300,8 +300,14 @@ export default function FloatingMochi() {
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none fixed inset-0 z-40"
-      style={{ maxWidth: 430, margin: "0 auto" }}
+      className="pointer-events-none"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        maxWidth: 430,
+        margin: "0 auto",
+      }}
     >
       {/* Wind trail puffs */}
       {windPuffs.map((wp) => (
@@ -379,7 +385,7 @@ export default function FloatingMochi() {
         onDragEnd={handleDragEnd}
         onTap={handleTap}
         className="pointer-events-auto absolute cursor-pointer select-none"
-        style={{ top: 0, left: 0, width: 56, height: 56 }}
+        style={{ top: 0, left: 0, width: 56, height: 56, zIndex: 9999 }}
         whileHover={{ scale: growScale * 1.1 }}
       >
         {/* Glow ring — gets bigger with growth */}

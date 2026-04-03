@@ -516,11 +516,19 @@ function RealDMChat({
     }
   }, [friend.principal]);
 
-  const { data: messages = [], isLoading } = useGetPrivateMessages(
-    myPrincipal,
-    friendPrincipal,
-  );
+  const {
+    data: messages = [],
+    isLoading,
+    refetch,
+  } = useGetPrivateMessages(myPrincipal, friendPrincipal);
   const sendMsg = useSendPrivateMessage();
+  const [sending, setSending] = useState(false);
+
+  // Poll for new messages every 5 seconds
+  useEffect(() => {
+    const id = setInterval(() => refetch(), 5000);
+    return () => clearInterval(id);
+  }, [refetch]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on messages
   useEffect(() => {
@@ -528,21 +536,24 @@ function RealDMChat({
   }, [messages.length, optimistic.length]);
 
   const handleSend = () => {
-    if (!input.trim() || !friendPrincipal) return;
+    if (!input.trim() || !friendPrincipal || sending) return;
     const content = input.trim();
     const tempId = `opt-${Date.now()}`;
     setOptimistic((p) => [...p, { content, id: tempId }]);
     setInput("");
+    setSending(true);
     sendMsg.mutate(
       { recipient: friendPrincipal, content },
       {
         onSuccess: () => {
           setOptimistic((p) => p.filter((m) => m.id !== tempId));
+          setSending(false);
         },
         onError: () => {
           setOptimistic((p) => p.filter((m) => m.id !== tempId));
           toast.error("Message failed to send");
           setInput(content);
+          setSending(false);
         },
       },
     );
@@ -711,12 +722,13 @@ function RealDMChat({
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
           placeholder="Message..."
           className="rounded-full text-sm"
+          disabled={sending}
         />
         <button
           type="button"
           data-ocid="dm.submit_button"
           onPointerDown={handleSend}
-          disabled={!input.trim()}
+          disabled={!input.trim() || sending}
           className="w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 disabled:opacity-40"
           style={{
             background:
